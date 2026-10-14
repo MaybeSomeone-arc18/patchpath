@@ -33,11 +33,11 @@ STOPWORDS = {
 
 
 def _code_like(token: str) -> bool:
-    if "." in token or "/" in token:
+    if "." in token or "/" in token or "_" in token:
         return True
-    if "_" in token:
+    if token[0].isupper():                    # ClassName convention
         return True
-    if any(c.isupper() for c in token[1:]):   # camelCase or ClassName
+    if any(c.isupper() for c in token[1:]):   # camelCase
         return True
     return False
 

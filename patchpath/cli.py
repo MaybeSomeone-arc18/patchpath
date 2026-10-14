@@ -73,6 +73,60 @@ def cmd_ingest(args) -> int:
     return 0
 
 
+def cmd_pack(args) -> int:
+    from .acquire import Snapshot
+    from .graphstore import published_graph_name
+    from .issues import IssueClient
+    from .packet import build_packet, render_markdown
+    import hashlib
+
+    # resolve the snapshot: reuse READY, else ingest first
+    from .acquire import resolve_sha
+    try:
+        sha, _ = resolve_sha(args.repo, args.ref)
+    except AcquireError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    snap_id = hashlib.sha256(f"{args.repo}@{sha}".encode()).hexdigest()[:16]
+    reg = Registry(DATA / "registry.db")
+    ready = reg.get_ready(snap_id)
+    if not ready:
+        print(f"[pack] no READY snapshot for {args.repo}@{sha[:12]}; ingesting first")
+        rc = cmd_ingest(argparse.Namespace(repo=args.repo, ref=args.ref))
+        if rc != 0:
+            return rc
+        ready = reg.get_ready(snap_id)
+    graph = ready["graph"]
+    print(f"[pack] using snapshot {graph}")
+
+    ev = IssueClient(DATA / "issue_cache").fetch(args.repo, args.issue)
+    if ev.fetch_error:
+        print(f"[issue] {ev.fetch_error}")
+    else:
+        print(f"[issue] #{args.issue} state={ev.state} comments={ev.comments} "
+              f"linked_prs={len(ev.linked_prs)}")
+
+    from .tools_query import QueryTools
+    tools = QueryTools(graph)
+    snap_root = DATA / "snapshots" / snap_id
+    try:
+        pack = build_packet(tools, snap_root, ev, top_n=args.top)
+    except Exception as e:
+        print(f"error: pack failed citation validation: {e}", file=sys.stderr)
+        return 1
+    out_dir = DATA / "packets"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    base = out_dir / f"pack_{args.repo.replace('/', '__')}__{args.issue}"
+    base.with_suffix(".json").write_text(pack.to_json())
+    md = render_markdown(pack)
+    base.with_suffix(".md").write_text(md)
+    print(f"[pack] status: {pack.status}")
+    print(f"[pack] wrote {base.with_suffix('.md')}")
+    print()
+    print(md)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="patchpath")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -80,6 +134,12 @@ def main() -> int:
     ing.add_argument("repo", help="owner/name")
     ing.add_argument("--ref", help="branch/tag/SHA (default: default branch)")
     ing.set_defaults(fn=cmd_ingest)
+    pk = sub.add_parser("pack", help="build a readiness pack for an issue")
+    pk.add_argument("repo", help="owner/name")
+    pk.add_argument("issue", type=int, help="issue number")
+    pk.add_argument("--ref", help="branch/tag/SHA (default: default branch)")
+    pk.add_argument("--top", type=int, default=5, help="max candidate symbols")
+    pk.set_defaults(fn=cmd_pack)
     args = ap.parse_args()
     return args.fn(args)
 

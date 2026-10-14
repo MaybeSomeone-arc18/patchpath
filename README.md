@@ -77,6 +77,24 @@ The pack is written to `data/packets/` as Markdown + JSON.
 - Static paths are not proof of bug causality or a complete blast radius;
   unresolved calls stay visible as gaps.
 
+## Measured results (not marketing)
+
+Evaluation harness: `python -m patchpath.eval`. Method: ingest the snapshot
+at the parent of a real merged fix commit, build the pack from the issue
+text alone, then check whether candidate files/symbols cover what the fix
+changed. The patch is never shown to candidate selection.
+
+Curated set: 6 real resolved issues across pypa/packaging, psf/requests and
+pallets/click. Result: **file+symbol recall 5/6**. The miss
+(psf/requests#6711, "breaking aws s3 usage") names no code anywhere in the
+issue text - no lexical method can find it; it is reported as a failure
+case, not dropped. Full per-case outcomes in `data/packets/eval_*.json`
+after running locally.
+
+Resolution quality on pypa/packaging (2,293 symbols, 9,604 call sites):
+63% EXACT / 7% NAME_ONLY / 30% UNRESOLVED (mostly stdlib and external
+calls; dynamic calls stay visible).
+
 ## Honesty model
 
 Every call edge is tagged EXACT / NAME_ONLY / UNRESOLVED. Dynamic dispatch,

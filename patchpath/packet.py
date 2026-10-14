@@ -103,8 +103,16 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
 
     for c in cands:
         q = c["qualname"]
-        pack.callers[q] = tools.neighbors(q, "callers", hops=2)
-        pack.tests[q] = tools.nearby_tests(q)
+        try:
+            pack.callers[q] = tools.neighbors(q, "callers", hops=2)
+            pack.tests[q] = tools.nearby_tests(q)
+        except Exception as e:
+            pack.unknowns.append(
+                f"Graph query for `{q}` failed ({e.__class__.__name__}); "
+                "caller/test sections for this candidate are incomplete, "
+                "not empty.")
+            pack.callers[q] = []
+            pack.tests[q] = []
         card = tools.inspect_symbol(q)
         if card:
             pack.citations.append(validate_citation(

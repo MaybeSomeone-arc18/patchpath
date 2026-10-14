@@ -124,8 +124,9 @@ class GraphStore:
             g.query(
                 "UNWIND $rows AS row "
                 "MATCH (a:File {path: row.src}), (b:File) "
-                "WHERE b.path = replace(row.dst_module, '.', '/') + '.py' "
-                "   OR b.path = replace(row.dst_module, '.', '/') + '/__init__.py' "
+                "WHERE b.path <> a.path AND "
+                "   (b.path = replace(row.dst_module, '.', '/') + '.py' "
+                "   OR b.path = replace(row.dst_module, '.', '/') + '/__init__.py') "
                 "CREATE (a)-[:IMPORTS {line: row.line}]->(b)",
                 {"rows": imp_rows[i:i + EDGE_BATCH]})
         return name

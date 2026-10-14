@@ -15,6 +15,32 @@ MAX_RESULTS = 50
 IDENT_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\b")
 PATH_RE = re.compile(r"\b([\w./-]+\.py)\b")
 
+# Plain-English words that appear in code too; matching them as identifiers
+# is how "local" becomes a candidate. Code-like tokens (snake_case with _,
+# camelCase, ALL_CAPS, dotted) skip this list entirely.
+STOPWORDS = {
+    "the", "and", "for", "with", "when", "this", "that", "from", "into",
+    "error", "fails", "fail", "failed", "bug", "issue", "should", "would",
+    "could", "does", "not", "but", "are", "was", "were", "been", "have",
+    "has", "had", "use", "used", "using", "version", "versions", "local",
+    "parse", "test", "tests", "code", "file", "files", "value", "values",
+    "name", "type", "string", "list", "dict", "data", "true", "false",
+    "none", "null", "return", "returns", "raise", "raises", "instead",
+    "wrong", "seems", "like", "also", "see", "example", "expected",
+    "actual", "currently", "however", "because", "after", "before",
+    "https", "http", "com", "github", "www", "org", "python",
+}
+
+
+def _code_like(token: str) -> bool:
+    if "." in token or "/" in token:
+        return True
+    if "_" in token:
+        return True
+    if any(c.isupper() for c in token[1:]):   # camelCase or ClassName
+        return True
+    return False
+
 
 def identifiers(text: str) -> list[str]:
     """Candidate identifiers from issue text: dotted names, paths, words."""
@@ -26,6 +52,12 @@ def identifiers(text: str) -> list[str]:
     for m in IDENT_RE.finditer(text):
         t = m.group(1)
         if len(t) < 3 or t in seen:
+            continue
+        if not _code_like(t) and t.lower() in STOPWORDS:
+            continue
+        # a bare lowercase dictionary word is a weak signal; keep only if
+        # it is long enough to be distinctive
+        if not _code_like(t) and len(t) < 6:
             continue
         seen.add(t); out.append(t)
     return out[:200]
@@ -55,8 +87,14 @@ class QueryTools:
             "      (s.qualname = id OR s.qualname ENDS WITH '.' + id OR s.name = id) "
             "RETURN DISTINCT s.id, s.qualname, s.kind, s.name LIMIT $lim",
             {"ids": idents, "lim": MAX_CANDIDATES})
-        cands = [{"symbol_id": r[0], "qualname": r[1], "kind": r[2],
-                  "reason": f"name '{r[3]}' appears in issue text"} for r in rows]
+        dotted = {i for i in idents if "." in i}
+        cands = []
+        for r in rows:
+            exact = r[1] in dotted or any(r[1].endswith("." + d) for d in dotted)
+            cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                          "reason": (f"full dotted name '{r[1]}' in issue text" if exact
+                                     else f"name '{r[3]}' appears in issue text"),
+                          "_rank": 0 if exact else 1})
         # file-path mentions resolve to all symbols in that file (capped)
         paths = [i for i in idents if i.endswith(".py")]
         if paths:
@@ -70,7 +108,11 @@ class QueryTools:
             for r in rows:
                 if not any(c["symbol_id"] == r[0] for c in cands):
                     cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
-                                  "reason": f"defined in file '{r[3]}' named in issue text"})
+                                  "reason": f"defined in file '{r[3]}' named in issue text",
+                                  "_rank": 2})
+        cands.sort(key=lambda c: c["_rank"])
+        for c in cands:
+            c.pop("_rank", None)
         return cands[:MAX_CANDIDATES]
 
     # -- tool 2: one symbol, full card ---------------------------------------

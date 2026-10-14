@@ -54,7 +54,16 @@ def cmd_ingest(args) -> int:
 
     DATA.mkdir(exist_ok=True)
     reg = Registry(DATA / "registry.db")
-    gs = GraphStore()
+    try:
+        gs = GraphStore()
+        gs.db.connection.ping()
+    except Exception:
+        print("error: FalkorDB is not reachable on 127.0.0.1:6380 - start it "
+              "(docker run -p 6379:6379 falkordb/falkordb:6.0.2) and retry. "
+              "No new investigation is possible while the graph is down; "
+              "previously built packs in data/packets/ are historical.",
+              file=sys.stderr)
+        return 2
     reg.begin(snap.snapshot_id, repo, sha, ANALYZER_VERSION, SCHEMA_VERSION,
               "(pending)")
     try:
@@ -99,6 +108,14 @@ def cmd_pack(args) -> int:
         ready = reg.get_ready(snap_id)
     graph = ready["graph"]
     print(f"[pack] using snapshot {graph}")
+    try:
+        from falkordb import FalkorDB as _F
+        _F(port=6380).connection.ping()
+    except Exception:
+        print("error: FalkorDB is not reachable; cannot build a pack while the "
+              "graph is down. Existing packs in data/packets/ are historical.",
+              file=sys.stderr)
+        return 2
 
     ev = IssueClient(DATA / "issue_cache").fetch(args.repo, args.issue)
     if ev.fetch_error:

@@ -115,9 +115,12 @@ class IssueClient:
                 return  # leave empty; absence is not evidence of no work
             r.raise_for_status()
             for item in r.json().get("items", []):
+                url = item.get("html_url", "")
+                if not url.startswith("https://github.com/"):
+                    url = f"https://github.com/{ev.repo}/pull/{item['number']}"
                 ev.linked_prs.append({
                     "number": item["number"], "state": item["state"],
-                    "title": item.get("title", ""), "url": item.get("html_url", "")})
+                    "title": item.get("title", ""), "url": url})
         except httpx.HTTPError:
             pass
 

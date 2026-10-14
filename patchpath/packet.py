@@ -157,7 +157,7 @@ def _steps(p: Packet) -> list[str]:
 def render_markdown(p: Packet) -> str:
     """Human packet. All dynamic text HTML-escaped; links fixed to github.com."""
     L: list[str] = []
-    esc = lambda s: str(s)
+    esc = lambda s: str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     L.append(f"# Readiness pack: {esc(p.repo)}#{p.issue_number}")
     L.append("")
     L.append(f"- Status: **{esc(p.status)}**")

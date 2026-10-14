@@ -80,6 +80,7 @@ class _Visitor(ast.NodeVisitor):
         self.by_name = by_name
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
+        self.scope_kind: list[str] = []  # parallel: "class" | "function"
         self.import_map: dict[str, str] = {}  # local alias -> absolute module or module.name
         self.test_file = is_test_file(path)
 
@@ -90,8 +91,10 @@ class _Visitor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._add_symbol(node, "class")
         self.scope.append(node.name)
+        self.scope_kind.append("class")
         self.generic_visit(node)
         self.scope.pop()
+        self.scope_kind.pop()
 
     def visit_FunctionDef(self, node) -> None:
         self._visit_func(node)
@@ -105,8 +108,10 @@ class _Visitor(ast.NodeVisitor):
         if self.test_file and (node.name.startswith("test_") or node.name.startswith("Test")):
             sym.is_test = True
         self.scope.append(node.name)
+        self.scope_kind.append("function")
         self.generic_visit(node)
         self.scope.pop()
+        self.scope_kind.pop()
 
     def _add_symbol(self, node, kind: str) -> Symbol:
         sym = Symbol(
@@ -168,6 +173,20 @@ class _Visitor(ast.NodeVisitor):
         return None, None
 
     def _resolve(self, caller: str, expr: str, root: str, line: int) -> Call:
+        # 0) self.attr / cls.attr: resolve within the nearest enclosing class
+        if root in ("self", "cls") and "." in expr:
+            attr = expr.split(".", 1)[1]
+            for i in range(len(self.scope) - 1, -1, -1):
+                if self.scope_kind[i] == "class":
+                    qual = ".".join([self.module, *self.scope[:i + 1], attr])
+                    if qual in self.known:
+                        return Call(caller, expr, qual, EXACT, line)
+            # not found in any enclosing class: inherited or dynamic; honest
+            leaf = expr.rsplit(".", 1)[-1]
+            hits = self.by_name.get(leaf, [])
+            if len(hits) == 1:
+                return Call(caller, expr, hits[0], NAME_ONLY, line)
+            return Call(caller, expr, None, UNRESOLVED, line)
         # 1) direct local/nested definition
         candidates = []
         if "." not in expr:

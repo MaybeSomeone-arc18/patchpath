@@ -77,3 +77,30 @@ def test_test_detection():
     syms = {s.qualname: s for s in out[0].symbols}
     assert syms["tests.test_thing.test_it"].is_test
     assert not syms["tests.test_thing.helper"].is_test
+
+
+def test_self_method_resolution():
+    out = analyze_files([
+        ("pkg/eng.py", "class Engine:\n"
+                       "    def run(self):\n"
+                       "        return self.compute()\n"
+                       "    def compute(self):\n"
+                       "        return 42\n"),
+    ], REPO)
+    calls = _by_expr(out, "pkg/eng.py")
+    assert calls["self.compute"].tag == EXACT
+    assert calls["self.compute"].target_qual == "pkg.eng.Engine.compute"
+
+
+def test_self_inherited_not_claimed_exact():
+    out = analyze_files([
+        ("pkg/eng.py", "class Engine(Base):\n"
+                       "    def run(self):\n"
+                       "        return self.compute()\n"),
+        ("pkg/other.py", "class Unrelated:\n"
+                         "    def compute(self):\n"
+                         "        return 1\n"),
+    ], REPO)
+    calls = _by_expr(out, "pkg/eng.py")
+    # single name hit allowed as NAME_ONLY suggestion, never EXACT
+    assert calls["self.compute"].tag == NAME_ONLY

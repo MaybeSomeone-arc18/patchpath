@@ -8,7 +8,6 @@ line. Statuses are honest: "evidence assembled" / "needs investigation" /
 """
 from __future__ import annotations
 
-import html
 import json
 import time
 from dataclasses import dataclass, field, asdict
@@ -79,7 +78,7 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
                  ev: IssueEvidence, top_n: int = 5) -> Packet:
     stats = tools.stats()
     issue_text = f"{ev.title}\n{ev.body}"
-    cands = tools.find_candidates(issue_text)[:top_n]
+    cands = tools.find_candidates(issue_text, title=ev.title)[:top_n]
 
     status = "evidence assembled"
     unknowns: list[str] = []
@@ -158,7 +157,7 @@ def _steps(p: Packet) -> list[str]:
 def render_markdown(p: Packet) -> str:
     """Human packet. All dynamic text HTML-escaped; links fixed to github.com."""
     L: list[str] = []
-    esc = html.escape
+    esc = lambda s: str(s)
     L.append(f"# Readiness pack: {esc(p.repo)}#{p.issue_number}")
     L.append("")
     L.append(f"- Status: **{esc(p.status)}**")

@@ -71,12 +71,14 @@ class QueryTools:
         return self.g.query(q, p or {}).result_set
 
     # -- tool 1: candidate symbols for issue text ---------------------------
-    def find_candidates(self, issue_text: str) -> list[dict]:
+    def find_candidates(self, issue_text: str, title: str = "") -> list[dict]:
         """Deterministic lexical candidates, expanded one graph hop.
 
-        EXACT-path matches first (dotted qualnames, file paths), then
-        unique-name matches. Never claims relevance; reports why returned.
+        Ranking: named in the issue title > full dotted name in body >
+        bare name > defined in a named file. Never claims relevance;
+        reports why returned.
         """
+        title_idents = set(identifiers(title)) if title else set()
         idents = identifiers(issue_text)
         if not idents:
             return []
@@ -90,11 +92,17 @@ class QueryTools:
         dotted = {i for i in idents if "." in i}
         cands = []
         for r in rows:
+            in_title = r[3] in title_idents or r[1] in title_idents or \
+                any(r[1].endswith("." + t) for t in title_idents)
             exact = r[1] in dotted or any(r[1].endswith("." + d) for d in dotted)
+            if in_title:
+                rank, reason = 0, f"name '{r[3]}' appears in the issue title"
+            elif exact:
+                rank, reason = 1, f"full dotted name '{r[1]}' in issue text"
+            else:
+                rank, reason = 2, f"name '{r[3]}' appears in issue text"
             cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
-                          "reason": (f"full dotted name '{r[1]}' in issue text" if exact
-                                     else f"name '{r[3]}' appears in issue text"),
-                          "_rank": 0 if exact else 1})
+                          "reason": reason, "_rank": rank})
         # file-path mentions resolve to all symbols in that file (capped)
         paths = [i for i in idents if i.endswith(".py")]
         if paths:
@@ -109,7 +117,7 @@ class QueryTools:
                 if not any(c["symbol_id"] == r[0] for c in cands):
                     cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
                                   "reason": f"defined in file '{r[3]}' named in issue text",
-                                  "_rank": 2})
+                                  "_rank": 3})
         cands.sort(key=lambda c: c["_rank"])
         for c in cands:
             c.pop("_rank", None)

@@ -73,11 +73,13 @@ def is_test_file(path: str) -> bool:
 
 
 class _Visitor(ast.NodeVisitor):
-    def __init__(self, path: str, known_qualnames: set[str], by_name: dict[str, list[str]]):
+    def __init__(self, path: str, known_qualnames: set[str], by_name: dict[str, list[str]],
+                 src_prefix: str = ""):
         self.path = path
         self.module = module_name(path)
         self.known = known_qualnames
         self.by_name = by_name
+        self.src_prefix = src_prefix   # "src." when the repo uses src/ layout
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
         self.scope_kind: list[str] = []  # parallel: "class" | "function"
@@ -198,6 +200,8 @@ class _Visitor(ast.NodeVisitor):
             rest = expr[len(root):].lstrip(".")
             full = f"{mapped}.{rest}" if rest else mapped
             candidates.append(full)
+            if self.src_prefix and not full.startswith(self.src_prefix):
+                candidates.append(self.src_prefix + full)
             # 'from pkg import mod' then mod.func() -> pkg.mod.func
             # 'from pkg import func' then func() -> pkg.func
         for cand in candidates:
@@ -239,14 +243,24 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
             by_name.setdefault(s.name, []).append(s.qualname)
 
     # pass 2: full visit with resolution against the complete universe
+    # src-layout: top-level packages live under "src."
+    src_prefix = ""
+    tops = {m.split(".")[0] for m in modules}
+    if "src" in tops and any(m.startswith("src.") for m in modules):
+        src_prefix = "src."
+
     out: list[FileAnalysis] = []
     for path, tree, err in parsed:
-        v = _Visitor(path, known, by_name)
+        v = _Visitor(path, known, by_name, src_prefix)
         if tree is not None:
             v.visit(tree)
         for imp in v.out.imports:
-            imp.internal = imp.imported in modules or any(
-                m.startswith(imp.imported + ".") for m in modules)
+            imp.internal = (
+                imp.imported in modules
+                or any(m.startswith(imp.imported + ".") for m in modules)
+                or (src_prefix and (src_prefix + imp.imported) in modules)
+                or (src_prefix and any(
+                    m.startswith(src_prefix + imp.imported + ".") for m in modules)))
         v.out.parse_error = err
         out.append(v.out)
     return out

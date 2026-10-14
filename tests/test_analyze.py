@@ -104,3 +104,17 @@ def test_self_inherited_not_claimed_exact():
     calls = _by_expr(out, "pkg/eng.py")
     # single name hit allowed as NAME_ONLY suggestion, never EXACT
     assert calls["self.compute"].tag == NAME_ONLY
+
+
+def test_src_layout_import_resolution():
+    out = analyze_files([
+        ("src/pkg/__init__.py", ""),
+        ("src/pkg/core.py", "def clean(x):\n    return x\n"),
+        ("tests/test_core.py", "from pkg.core import clean\n"
+                               "def test_clean():\n    assert clean(1)\n"),
+    ], REPO)
+    calls = _by_expr(out, "tests/test_core.py")
+    assert calls["clean"].tag == EXACT
+    assert calls["clean"].target_qual == "src.pkg.core.clean"
+    fa = next(a for a in out if a.path == "tests/test_core.py")
+    assert fa.imports[0].internal

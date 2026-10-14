@@ -114,6 +114,15 @@ class GraphStore:
                 "CREATE (a)-[:CALLS {tag: row.tag, expr: row.expr, line: row.line}]->(u)",
                 {"rows": batch})
 
+        # Derived constructor edges: a call resolved to a class also calls
+        # its __init__ (still exact static binding, marked derived)
+        g.query(
+            "MATCH (a:Symbol)-[c:CALLS]->(b:Symbol), (i:Symbol) "
+            "WHERE b.kind = 'class' AND c.tag = 'EXACT' "
+            "AND i.qualname = b.qualname + '.__init__' "
+            "CREATE (a)-[:CALLS {tag: 'EXACT', expr: c.expr, line: c.line, "
+            "derived: 'ctor'}]->(i)")
+
         # IMPORTS edges (module-level, internal only become File->File)
         imp_rows = []
         for fa in analyses:

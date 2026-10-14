@@ -59,6 +59,7 @@ def cmd_ingest(args) -> int:
               "(pending)")
     try:
         staging = gs.build_staging(snap, analyses)
+        gs.create_indexes(staging)
         stats = gs.validate(staging, snap, analyses)
         pub = gs.publish(staging, snap)
         reg.conn.execute("UPDATE snapshots SET graph_name=? WHERE snapshot_id=?",

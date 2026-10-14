@@ -131,6 +131,13 @@ class GraphStore:
                 {"rows": imp_rows[i:i + EDGE_BATCH]})
         return name
 
+    def create_indexes(self, staging: str) -> None:
+        """Index lookup fields with the pinned release's syntax (FalkorDB 6.x)."""
+        g = self.db.select_graph(staging)
+        for label, prop in [("Symbol", "qualname"), ("Symbol", "id"),
+                            ("Symbol", "name"), ("File", "path")]:
+            g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
+
     # --- validation ----------------------------------------------------------
     def validate(self, staging: str, snap: Snapshot, analyses: list[FileAnalysis]) -> dict:
         """Count-level validation before publish. Returns measured stats."""

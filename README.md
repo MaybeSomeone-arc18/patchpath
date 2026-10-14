@@ -91,9 +91,10 @@ issue text - no lexical method can find it; it is reported as a failure
 case, not dropped. Full per-case outcomes in `data/packets/eval_*.json`
 after running locally.
 
-Resolution quality on pypa/packaging (2,293 symbols, 9,604 call sites):
-63% EXACT / 7% NAME_ONLY / 30% UNRESOLVED (mostly stdlib and external
-calls; dynamic calls stay visible).
+Resolution quality on pypa/packaging (2,293 symbols, 11,506 call edges):
+53% EXACT (of which 1,856 are constructor-derived `Class()` -> `__init__`
+edges) / 6% NAME_ONLY / 41% UNRESOLVED (mostly stdlib and external calls;
+dynamic calls stay visible).
 
 ## Honesty model
 

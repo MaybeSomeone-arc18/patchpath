@@ -100,12 +100,18 @@ at the parent of a real merged fix commit, build the pack from the issue
 text alone, then check whether candidate files/symbols cover what the fix
 changed. The patch is never shown to candidate selection.
 
-Curated set: 6 real resolved issues across pypa/packaging, psf/requests and
-pallets/click. Result: **file+symbol recall 5/6**. The miss
-(psf/requests#6711, "breaking aws s3 usage") names no code anywhere in the
-issue text - no lexical method can find it; it is reported as a failure
-case, not dropped. Full per-case outcomes in `data/packets/eval_*.json`
-after running locally.
+Curated set (`--cases data/eval_cases.json`): 6 real resolved issues
+across pypa/packaging, psf/requests and pallets/click. Result: **file+symbol
+recall 5/6**. The miss (psf/requests#6711, "breaking aws s3 usage") names
+no code anywhere in the issue text - no lexical method can find it; it is
+reported as a failure case, not dropped.
+
+Fresh-sample check (plain `python -m patchpath.eval`, no curated file): the
+harness auto-discovers recently-resolved issues with merged fix PRs from
+GitHub search - never hand-picked. On 2026-10-15 it sampled 11 issues
+across the same three repos: **5/11 file+symbol, 7/11 file-level**. The
+four misses are again issues whose text names no code. Both sets ship with
+per-case outcomes in `data/packets/eval_*.json` after running locally.
 
 Resolution quality on pypa/packaging (2,293 symbols, 11,506 call edges):
 53% EXACT (of which 1,856 are constructor-derived `Class()` -> `__init__`

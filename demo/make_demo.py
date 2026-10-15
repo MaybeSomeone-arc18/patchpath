@@ -134,7 +134,7 @@ frame("07", [
     ("", FG),
     ("No auto-claims. No comments. No PRs. No generated patches.", FG),
     ("Issue state unverifiable? The pack says so, and claims nothing.", FG),
-    ("Eval: 5/6 real fixes' files found from issue text alone (miss shown).", DIM),
+    ("Eval: 5/6 curated, 7/11 fresh-sample files found (misses shown).", DIM),
 ], title="Honesty model")
 
 # --- slide 8: close (5s)

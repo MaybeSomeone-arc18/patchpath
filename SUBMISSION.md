@@ -23,5 +23,7 @@ terminal capture of real runs.
 dynamic dispatch/decorators/monkey-patching - those stay visible as
 UNRESOLVED edges with the percentage reported in every pack. Issue evidence
 requires the public GitHub API; when it is rate-limited the pack says
-"state unverified" and makes no availability claim. Eval recall is 5/6 on
-the curated set; the miss is an issue whose text names no code.
+"state unverified" and makes no availability claim. Eval: 5/6 file+symbol
+recall on the curated set, and on a fresh auto-discovered sample (11 issues,
+never hand-picked) 5/11 file+symbol / 7/11 file-level; the misses are
+issues whose text names no code.

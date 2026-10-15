@@ -84,15 +84,20 @@ RETURN t.qualname, c.tag LIMIT 50
 
 MATCH p = (o:Symbol)-[:CALLS*1..3]->(s:Symbol {qualname: $q})
 WHERE o.kind <> 'module'
-WITH o, p ORDER BY length(p)
+WITH o, p ORDER BY length(p),
+     relationships(p)[length(p) - 1].tag DESC
 WITH o, head(collect(p)) AS sp
 RETURN o.qualname, length(sp) AS depth,
        relationships(sp)[length(sp) - 1].tag AS tag
+ORDER BY depth, o.qualname
 LIMIT 50
 ```
 
 The second query is the caller blast-radius: one bounded variable-length
 traversal per suspect symbol, depth being the shortest static call path.
+Ordering is deterministic (weakest final-edge tag first among equal
+shortest paths; depth then name in the output), so the capped result is
+stable across runs.
 This is the load-bearing graph step - it is one Cypher traversal, not a
 recursive application-side walk. Caller/callee expansion is capped at
 three hops and 50 results. Test candidates can include a final test edge

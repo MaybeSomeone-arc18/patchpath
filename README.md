@@ -156,8 +156,8 @@ uncountable due to a GitHub API rate limit, not a pack failure.
 
 At packaging commit `ef837aad3127167671eb37b9f6bd8a94ec7ce26e`:
 2,293 non-module symbols, 523 module/class variables, 11,620 stored CALLS
-edges (6,727 EXACT / 350 NAME_ONLY / 3,644 EXTERNAL / 899 UNRESOLVED,
-rounded 58/3/31/8%) and 1,214 REFS edges. CALLS totals include derived
+edges (6,727 EXACT / 348 NAME_ONLY / 3,735 EXTERNAL / 810 UNRESOLVED,
+rounded 58/3/32/7%) and 1,214 REFS edges. CALLS totals include derived
 constructor edges, not 11,620 distinct source calls. The analyzer
 extracted 9,604 AST call records. This does not measure runtime accuracy.
 

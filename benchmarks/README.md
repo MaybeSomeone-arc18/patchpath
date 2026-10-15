@@ -17,6 +17,8 @@ Three harness runs are committed:
   identical per-case outcomes (8/12 file, 6/12 file+symbol, 3/3
   test-oracle, zero errors). The 0.3.0-0.5.0 graph-resolution work does
   not change this sample's retrieval score.
+- `results_2026-10-15_run4.json` - analyzer 0.6.0, same frozen inputs:
+  identical per-case outcomes again.
 
 Reproduce the sample with the database running:
 
@@ -66,9 +68,9 @@ limit blocked the fix-commit fetch; that artifact is not included.
 ## Snapshot demonstration
 
 pypa/packaging at `ef837aad3127167671eb37b9f6bd8a94ec7ce26e` (analyzer
-0.5.0): 2,293 non-module symbols, 523 module/class variables, 11,620
-stored CALLS edges (6,727 EXACT / 350 NAME_ONLY / 3,644 EXTERNAL /
-899 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
+0.6.0): 2,293 non-module symbols, 523 module/class variables, 11,620
+stored CALLS edges (6,727 EXACT / 348 NAME_ONLY / 3,735 EXTERNAL /
+810 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
 edges count in those totals; these are edges, not distinct source call
 sites. 9,604 AST call records were extracted. Some chained/dynamic call
 forms are omitted entirely.
@@ -84,4 +86,7 @@ fixture's returned class (`def test_x(runner)` with a fixture returning
 `CliRunner()`). 0.5.0 binds annotated parameters (`ctx: Context`) to the
 annotation's class and classifies pytest builtin fixtures (monkeypatch,
 capfd, tmp_path, ...) as EXTERNAL: EXACT 6,727, NAME_ONLY 350,
-UNRESOLVED 899 (8%).
+UNRESOLVED 899 (8%). 0.6.0 classifies builtin-typed locals
+(`bits = []`, `f = open(...)`) and module-level variables created by
+external factories (`T = namedtuple(...)`) as EXTERNAL: UNRESOLVED
+810 (7%), EXTERNAL 3,735.

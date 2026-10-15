@@ -289,13 +289,18 @@ class QueryTools:
             if exact_only else ""
         # one graph-native bounded traversal: the same reachable set as BFS,
         # depth = shortest-path length, tag = final edge of a shortest path.
-        # The 3-hop cap and result cap keep the cost explicit.
+        # The 3-hop cap and result cap keep the cost explicit. Deterministic:
+        # shortest paths prefer the weakest final-edge tag (conservative) and
+        # the capped output is ordered by depth then qualname, so reruns of
+        # the same snapshot return the same callers in the same order.
         rows = self._rows(
             f"MATCH p = {pattern} WHERE o.kind <> 'module'{exact} "
-            "WITH o, p ORDER BY length(p) "
+            "WITH o, p ORDER BY length(p), "
+            "relationships(p)[length(p) - 1].tag DESC "
             "WITH o, head(collect(p)) AS sp "
             "RETURN o.qualname, length(sp) AS depth, "
-            "relationships(sp)[length(sp) - 1].tag AS tag LIMIT $lim",
+            "relationships(sp)[length(sp) - 1].tag AS tag "
+            "ORDER BY depth, o.qualname LIMIT $lim",
             {"q": qualname, "lim": MAX_RESULTS})
         return [{"qualname": r[0], "depth": r[1], "tag": r[2]} for r in rows]
 

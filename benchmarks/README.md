@@ -112,6 +112,14 @@ edges count in those totals; these are edges, not distinct source call
 sites. 9,604 AST call records were extracted. Some chained/dynamic call
 forms are omitted entirely.
 
+The committed demonstration pack (`demo_pack_1449.json` /
+`demo_pack_1449.md`) was regenerated at analyzer 0.7.1 on the same
+snapshot: candidates, tests, citations and graph stats are identical to
+the committed copy. Caller traversal output is ordered (depth, then
+qualname, weakest final-edge tag first among equal shortest paths), so
+two consecutive pack builds on one snapshot return the same callers in
+the same order.
+
 Analyzer history on the same snapshot: 0.1.0 measured 6,102 EXACT / 657
 NAME_ONLY / 4,747 UNRESOLVED. 0.2.0 reclassified known builtins, stdlib
 and third-party calls as EXTERNAL (3,474) instead of UNRESOLVED. 0.3.0

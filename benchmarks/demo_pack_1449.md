@@ -1,7 +1,7 @@
 # Readiness pack: pypa/packaging#1449
 
 - Status: **evidence assembled**
-- Issue: https://github.com/pypa/packaging/issues/1449 (state: open, observed 2026-10-15 09:56 UTC)
+- Issue: https://github.com/pypa/packaging/issues/1449 (state: open, observed 2026-10-15 12:14 UTC)
 - Code pinned to commit `ef837aad3127167671eb37b9f6bd8a94ec7ce26e`
 
 ## Candidate code (lexical match, review before trusting)

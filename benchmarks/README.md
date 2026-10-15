@@ -25,6 +25,14 @@ Three harness runs are committed:
   identical per-case outcomes again.
 - `results_2026-10-15_run7.json` - graph-native traversal, same frozen
   inputs: identical per-case outcomes again.
+- `results_2026-10-15_run8.json` - analyzer 0.7.1, same frozen inputs,
+  plus a query-side linked-PR bridge tier (files changed in PRs the
+  issue links rank with the full-dotted-name tier): **9/12** file hits,
+  **6/12** file+symbol hits, 3/3 test-oracle, zero errors. Only
+  psf/requests #6711 changes (miss to file hit); it is the only frozen
+  case whose issue links a same-repo PR, so the tier cannot move the
+  other eleven. None of the eight fresh-sample issues links a same-repo
+  PR either, so the generalization numbers are unaffected.
 
 Reproduce the sample with the database running:
 
@@ -40,7 +48,9 @@ candidate names and their one-hop caller/callee names, so it can collide.
 ## Why the misses miss
 
 - psf/requests #6711 names no code: the issue text shares no vocabulary
-  with the fixed file, so no lexical seed exists. Accepted miss.
+  with the fixed file, so no lexical seed exists. It was an accepted
+  miss through run7; run8's linked-PR bridge surfaces the fixed file
+  because the issue links the fixing PR (#6644).
 - packaging #1406, click #3036 and click #3128 change no product-Python
   file in the harness oracle (test-only fixes); they count as headline
   misses and are separately reported through the test-file oracle (3/3).
@@ -54,7 +64,7 @@ candidate names and their one-hop caller/callee names, so it can collide.
 Three cases have no product-Python file in the extracted oracle:
 packaging #1406, click #3036 and click #3128. They are retained as
 misses in the headline, so this is a raw search-derived sample, not
-twelve equally scorable localization tasks. The primary file hit is 8/9
+twelve equally scorable localization tasks. The primary file hit is 9/9
 among cases with an extracted product-Python oracle, but that filtered
 number is not the headline result.
 

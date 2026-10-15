@@ -17,7 +17,8 @@ on Connected Data.
 
 FalkorDB stores files, symbols, static CALLS relationships and internal
 IMPORTS. Candidate selection is lexical matching over graph nodes -
-names, dotted paths, traceback frames, parameter names and constants -
+names, dotted paths, traceback frames, parameter names and constants,
+plus files changed in PRs the issue links (a common regression trail) -
 expanded by bounded graph traversals for callers and test candidates. Contribution
 rules are detected by filename, not interpreted. Removing the graph
 removes these query paths; there is no keyword-only fallback disguised
@@ -152,14 +153,16 @@ python -m patchpath.eval --cases benchmarks/cases_2026-10-15.json \
 ```
 
 On the 2026-10-15 raw auto-discovered 12-issue sample across packaging,
-requests and click: **8/12 any-changed-product-file hits among the first
+requests and click: **9/12 any-changed-product-file hits among the first
 five candidate symbols**, **6/12 with both a file hit and a heuristic
 symbol hit**, zero runtime errors. The three cases with no product-Python
 file in the extracted oracle are retained as misses in that headline; all
 three do surface the actually-fixed test file under the secondary
-test-file oracle (3/3). The only case with no useful candidate is
-requests #6711, whose recorded issue text names no code. These are
-issue-level hit rates, not file/symbol recall or general accuracy. Symbol
+test-file oracle (3/3). Requests #6711 names no code in its recorded
+text; it hits through the linked-PR bridge, which ranks files changed in
+PRs the issue links, and it is the only sample case with such a link.
+These are issue-level hit rates, not file/symbol recall or general
+accuracy. Symbol
 matching uses bare diff names plus one-hop caller/callee names and can
 collide. Issue text was observed after the fix and may have been edited.
 See the benchmark notes before comparing systems. Live discovery without

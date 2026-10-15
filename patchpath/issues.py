@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -31,6 +32,7 @@ class IssueEvidence:
     assignees: list[str] = field(default_factory=list)
     comments: int = 0
     linked_prs: list[dict] = field(default_factory=list)  # number, state, title, url
+    linked_pr_files: list[str] = field(default_factory=list)  # files changed in PRs the issue links
     competing_work_status: str = "unverified"
     competing_work_error: str | None = None
     competing_work_observed_at: float | None = None
@@ -45,6 +47,18 @@ class IssueEvidence:
     def rep_hash(self) -> str:
         payload = json.dumps(asdict(self), sort_keys=True)
         return hashlib.sha256(payload.encode()).hexdigest()[:12]
+
+
+def referenced_pr_numbers(repo: str, text: str) -> list[int]:
+    """Same-repo pull-request numbers linked in issue text (full URLs only)."""
+    nums: list[int] = []
+    for m in re.finditer(r"https://github\.com/([\w.-]+/[\w.-]+)/pull/(\d+)",
+                         text or ""):
+        if m.group(1).lower() == repo.lower():
+            n = int(m.group(2))
+            if n not in nums:
+                nums.append(n)
+    return nums[:5]
 
 
 class IssueClient:
@@ -103,11 +117,40 @@ class IssueClient:
             ev.assignees = [a["login"] for a in d.get("assignees", [])][:10]
             ev.comments = d.get("comments", 0)
             self._fetch_linked_prs(ev)
+            self._fill_linked_pr_files(ev)
             self._save(cp, ev, r.headers.get("ETag"))
             return ev
         except httpx.HTTPError as e:
             ev.fetch_error = f"{e.__class__.__name__}: network failure; state unverified"
             return ev
+
+    def fetch_pr_files(self, repo: str, pr_number: int) -> list[str]:
+        """Files changed in one PR, cached on disk. Best-effort caller."""
+        cp = self.cache_dir / f"{repo.replace('/', '__')}__prfiles__{pr_number}.json"
+        if cp.exists():
+            try:
+                return json.loads(cp.read_text())["files"]
+            except Exception:
+                pass
+        r = self.http.get(f"{API}/repos/{repo}/pulls/{pr_number}/files",
+                          params={"per_page": 100})
+        r.raise_for_status()
+        files = [f["filename"] for f in r.json()][:100]
+        cp.write_text(json.dumps({"files": files}))
+        return files
+
+    def _fill_linked_pr_files(self, ev: IssueEvidence) -> None:
+        """Files of same-repo PRs the issue text links. Regression reports
+        often link the PR that introduced the bug; best-effort, failure
+        leaves the list empty and candidates stay lexical-only."""
+        try:
+            nums = referenced_pr_numbers(ev.repo, f"{ev.title}\n{ev.body}")
+            files: list[str] = []
+            for n in nums:
+                files.extend(self.fetch_pr_files(ev.repo, n))
+            ev.linked_pr_files = files
+        except Exception:
+            ev.linked_pr_files = []
 
     def _fetch_linked_prs(self, ev: IssueEvidence) -> None:
         """Open PRs that reference this issue (search API, one call)."""

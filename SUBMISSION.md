@@ -22,12 +22,14 @@ EXACT / 333 NAME_ONLY / 4,026 EXTERNAL / 541 UNRESOLVED, rounded
 58/3/35/5%) and 1,214 REFS edges. Totals include derived
 constructor edges and are not unique source call counts or accuracy.
 
-Frozen raw auto-discovered sample, 2026-10-15: 8/12 issue-level
+Frozen raw auto-discovered sample, 2026-10-15: 9/12 issue-level
 any-changed-product-file hits among the first five candidate symbols;
 6/12 also have a heuristic symbol hit; zero runtime errors. Three cases
 have no product-Python file in the harness oracle and count as misses in
 the headline; all three surface the fixed test file under the secondary
-test-file oracle (3/3). The symbol diagnostic uses bare names and one-hop
+test-file oracle (3/3). The only issue whose text names no code
+(requests #6711) hits through the linked-PR bridge over the fixing PR
+its text links. The symbol diagnostic uses bare names and one-hop
 neighbors, not recall. Issue text was observed after the fixes. Full
 cases, text and outcomes are committed under benchmarks/; no historical
 curated score is claimed. A live generalization run on untuned repos the

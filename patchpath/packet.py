@@ -85,7 +85,8 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
                  ev: IssueEvidence, top_n: int = 5) -> Packet:
     stats = tools.stats()
     issue_text = f"{ev.title}\n{ev.body}"
-    cands = tools.find_candidates(issue_text, title=ev.title)[:top_n]
+    cands = tools.find_candidates(issue_text, title=ev.title,
+                                     linked_pr_files=ev.linked_pr_files)[:top_n]
 
     status = "evidence assembled"
     unknowns: list[str] = []

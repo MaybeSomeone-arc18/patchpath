@@ -117,13 +117,20 @@ class QueryTools:
         return self.g.query(q, p or {}).result_set
 
     # -- tool 1: candidate symbols for issue text ---------------------------
-    def find_candidates(self, issue_text: str, title: str = "") -> list[dict]:
+    def find_candidates(self, issue_text: str, title: str = "",
+                        linked_pr_files: list[str] | None = None) -> list[dict]:
         """Deterministic lexical candidates, expanded one graph hop.
 
-        Ranking: traceback frame > named in the issue title > full dotted
-        name in body > matching module/class variable > bare name >
-        parameter name > defined in a named file. Never claims relevance;
-        reports why returned.
+        Ranking: traceback frame > named in the issue title > defined in a file changed by a
+        linked PR > full dotted name in body > matching module/class
+        variable > bare name > parameter name > defined in a named file
+        > external touch point. Never claims
+        relevance; reports why returned. The linked-PR tier ties the full-dotted-name
+        tier (a human linked the PR; its changed files are curated
+        evidence) and sits above module variables, bare names,
+        parameter names, and the noisy external touch point. It fires
+        only when the issue links a same-repo PR, so cases without one
+        are unaffected.
         """
         title_idents = set(identifiers(title)) if title else set()
         idents = identifiers(issue_text)
@@ -148,6 +155,26 @@ class QueryTools:
                                   "file": r[3],
                                   "reason": f"traceback frame '{func}' in '{r[3]}'",
                                   "_rank": 0})
+        # files changed in PRs the issue links (regression bridge): a
+        # human linked the PR; its files are curated evidence, ranked
+        # with the full-dotted-name tier and inserted first within it
+        if linked_pr_files:
+            py = [p for p in linked_pr_files if p.endswith(".py")][:20]
+            if py:
+                rows = self._rows(
+                    "UNWIND $ps AS p "
+                    "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
+                    "WHERE s.kind <> 'module' AND "
+                    "      (f.path = p OR f.path ENDS WITH '/' + p) "
+                    "RETURN DISTINCT s.id, s.qualname, s.kind, f.path "
+                    "ORDER BY s.qualname LIMIT 10",
+                    {"ps": py})
+                for r in rows:
+                    if not _have(r[0]):
+                        cands.append({"symbol_id": r[0], "qualname": r[1],
+                                      "kind": r[2], "file": r[3],
+                                      "reason": f"defined in '{r[3]}', changed in a PR linked from the issue",
+                                      "_rank": 2})
         if not idents:
             cands.sort(key=lambda c: c["_rank"])
             for c in cands:
@@ -215,7 +242,7 @@ class QueryTools:
                     cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
                                   "file": r[4],
                                   "reason": f"{r[5]} external '{r[3]}' named in issue text",
-                                  "_rank": 6})
+                                  "_rank": 7})
 
         # parameter names: 'flag_value' style hints toward the function
         param_ids = [i for i in idents if "_" in i and "." not in i]

@@ -222,3 +222,79 @@ def test_refs_look_through_call_arguments():
     ], REPO)
     fa = next(a for a in out if a.path == "m.py")
     assert any(r.expr == "hashlib.sha1" and r.tag == EXTERNAL for r in fa.refs)
+
+
+def test_package_reexport_resolves_exact():
+    out = analyze_files([
+        ("pkg/__init__.py", "from .utils import echo\n"),
+        ("pkg/utils.py", "def echo():\n    pass\n"),
+        ("use.py", "import pkg\ndef go():\n    pkg.echo()\n"),
+    ], REPO)
+    calls = _by_expr(out, "use.py")
+    assert calls["pkg.echo"].tag == EXACT
+    assert calls["pkg.echo"].target_qual == "pkg.utils.echo"
+
+
+def test_package_reexport_class_method():
+    out = analyze_files([
+        ("pkg/__init__.py", "from .core import Group\n"),
+        ("pkg/core.py", "class Group:\n    def get_command(self):\n        pass\n"),
+        ("use.py", "import pkg\ndef go():\n    pkg.Group.get_command()\n"),
+    ], REPO)
+    calls = _by_expr(out, "use.py")
+    assert calls["pkg.Group.get_command"].tag == EXACT
+    assert calls["pkg.Group.get_command"].target_qual == "pkg.core.Group.get_command"
+
+
+def test_local_constructor_inference():
+    out = analyze_files([
+        ("lib.py", "class Runner:\n    def invoke(self):\n        pass\n"),
+        ("t.py", "from lib import Runner\ndef test_x():\n    runner = Runner()\n    runner.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["runner.invoke"].tag == EXACT
+    assert calls["runner.invoke"].target_qual == "lib.Runner.invoke"
+
+
+def test_local_constructor_inherited_method():
+    out = analyze_files([
+        ("lib.py", "class Base:\n    def invoke(self):\n        pass\nclass Runner(Base):\n    pass\n"),
+        ("t.py", "from lib import Runner\ndef test_x():\n    runner = Runner()\n    runner.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["runner.invoke"].tag == EXACT
+    assert calls["runner.invoke"].target_qual == "lib.Base.invoke"
+
+
+def test_untracked_local_stays_honest():
+    out = analyze_files([
+        ("t.py", "def test_x(maker):\n    r = maker()\n    r.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["r.invoke"].tag == UNRESOLVED
+
+
+def test_ctor_bindings_do_not_leak_scopes():
+    out = analyze_files([
+        ("lib.py", "class A:\n    def go(self):\n        pass\nclass B:\n    pass\n"),
+        ("t.py", "from lib import A, B\n"
+                 "def t1():\n    x = A()\n    x.go()\n"
+                 "def t2():\n    x = B()\n    x.go()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["x.go"].tag == UNRESOLVED or calls["x.go"].target_qual != "lib.A.go"
+    # t2's x is B which has no .go: must not resolve through t1's A binding
+    t2calls = [c for c in calls.values()]
+    assert not any(c.tag == EXACT and c.target_qual == "lib.A.go" and c.line > 4
+                   for c in t2calls)
+
+
+def test_src_layout_reexport_resolution():
+    out = analyze_files([
+        ("src/pkg/__init__.py", "from .utils import echo\n"),
+        ("src/pkg/utils.py", "def echo():\n    pass\n"),
+        ("tests/test_x.py", "import pkg\ndef t():\n    pkg.echo()\n"),
+    ], REPO)
+    calls = _by_expr(out, "tests/test_x.py")
+    assert calls["pkg.echo"].tag == EXACT
+    assert calls["pkg.echo"].target_qual == "src.pkg.utils.echo"

@@ -169,7 +169,8 @@ class _Visitor(ast.NodeVisitor):
     def __init__(self, path: str, known_qualnames: set[str], by_name: dict[str, list[str]],
                  src_prefix: str, class_bases: dict[str, list[str]],
                  class_module: dict[str, str], import_maps: dict[str, dict[str, str]],
-                 modules: set[str]):
+                 modules: set[str], reexports: dict[str, dict[str, str]] | None = None,
+                 class_qualnames: set[str] | None = None):
         self.path = path
         self.module = module_name(path)
         self.known = known_qualnames
@@ -179,6 +180,9 @@ class _Visitor(ast.NodeVisitor):
         self.class_module = class_module
         self.import_maps = import_maps
         self.modules = modules
+        self.reexports = reexports or {}
+        self.class_qualnames = class_qualnames or set()
+        self.var_types: dict[str, str] = {}
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
         self.scope_kind: list[str] = []  # parallel: "class" | "function"
@@ -265,21 +269,58 @@ class _Visitor(ast.NodeVisitor):
                       referrer=func_qual)
         for d in list(node.args.defaults) + [x for x in node.args.kw_defaults if x]:
             self._ref(d, node.lineno, referrer=func_qual)
+        # local constructor bindings do not leak across function scopes
+        outer_types = self.var_types
+        self.var_types = {}
         self.scope.append(node.name)
         self.scope_kind.append("function")
         self.generic_visit(node)
         self.scope.pop()
         self.scope_kind.pop()
+        self.var_types = outer_types
 
     def visit_Assign(self, node: ast.Assign) -> None:
-        if not (self.scope_kind and self.scope_kind[-1] == "function") and node.value:
+        if self.scope_kind and self.scope_kind[-1] == "function":
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                self._track_ctor(node.targets[0].id, node.value)
+        elif node.value:
             self._ref(node.value, node.lineno)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        if not (self.scope_kind and self.scope_kind[-1] == "function") and node.value:
+        if self.scope_kind and self.scope_kind[-1] == "function":
+            if isinstance(node.target, ast.Name) and node.value:
+                self._track_ctor(node.target.id, node.value)
+        elif node.value:
             self._ref(node.value, node.lineno)
         self.generic_visit(node)
+
+    def visit_With(self, node: ast.With) -> None:
+        for item in node.items:
+            if item.optional_vars and isinstance(item.optional_vars, ast.Name):
+                self._track_ctor(item.optional_vars.id, item.context_expr)
+        self.generic_visit(node)
+
+    def _track_ctor(self, name: str, value) -> None:
+        """x = SomeClass(...) / with SomeClass() as x: remember the static
+        class binding so x.method() can resolve EXACT. Only constructor
+        calls that resolve to a class in this snapshot count."""
+        if not isinstance(value, ast.Call):
+            return
+        expr = _expr_str(value.func)
+        if not expr:
+            return
+        tq = _resolve_expr(self.module, expr, self.import_map,
+                           self.known, self.src_prefix)
+        if not tq:
+            rest = expr.split(".", 1)
+            if len(rest) == 2:
+                m = self.import_map.get(rest[0], "")
+                table = self.reexports.get(m) or self.reexports.get(self.src_prefix + m, {})
+                target = table.get(rest[1])
+                tq = target if target in self.known else None
+        if tq and tq in self.class_qualnames:
+            self.var_types[name] = tq
 
     # --- calls --------------------------------------------------------------
     def visit_Call(self, node: ast.Call) -> None:
@@ -334,6 +375,18 @@ class _Visitor(ast.NodeVisitor):
             if len(hits) == 1:
                 return Call(caller, expr, hits[0], NAME_ONLY, line)
             return Call(caller, expr, None, UNRESOLVED, line)
+        # 0b) local variable bound to a known constructor: x.method()
+        if root in self.var_types and "." in expr:
+            cls = self.var_types[root]
+            rest = expr[len(root) + 1:]
+            if f"{cls}.{rest}" in self.known:
+                return Call(caller, expr, f"{cls}.{rest}", EXACT, line)
+            hit = self._lookup_in_hierarchy(cls, rest, set())
+            if hit:
+                return Call(caller, expr, hit, EXACT, line)
+            # bound var whose class lacks the member: never guess an
+            # unrelated same-named method; plain UNRESOLVED
+            return Call(caller, expr, None, UNRESOLVED, line)
         # 1) direct local/nested definition
         candidates = []
         if "." not in expr:
@@ -347,6 +400,15 @@ class _Visitor(ast.NodeVisitor):
             candidates.append(full)
             if self.src_prefix and not full.startswith(self.src_prefix):
                 candidates.append(self.src_prefix + full)
+            # 2b) package re-exports: click.echo -> src.click.utils.echo
+            if rest:
+                first, _, tail = rest.partition(".")
+                table = self.reexports.get(mapped) or \
+                    self.reexports.get(self.src_prefix + mapped, {})
+                target = table.get(first)
+                if target:
+                    re_full = f"{target}.{tail}" if tail else target
+                    candidates.append(re_full)
         for cand in candidates:
             if cand in self.known:
                 return Call(caller, expr, cand, EXACT, line)
@@ -539,6 +601,27 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
                 c.import_map.setdefault(rest, q)
 
     import_maps = {module_name(p): c.import_map for p, c in collectors.items()}
+
+    # package re-exports: 'from .utils import echo' in click/__init__.py makes
+    # 'click.echo' an alias for 'src.click.utils.echo'. One static hop, applied
+    # repeatedly so re-exported modules chain (A re-exports B re-exports C).
+    reexports: dict[str, dict[str, str]] = {}
+    for mod, imap in import_maps.items():
+        for local, full in imap.items():
+            if full in known or any(m == full or m.startswith(full + ".")
+                                    for m in modules):
+                reexports.setdefault(mod, {})[local] = full
+    for _ in range(4):
+        changed = False
+        for mod, table in reexports.items():
+            for local, full in list(table.items()):
+                nxt = reexports.get(full, {})
+                for k2, v2 in nxt.items():
+                    if k2 not in table:
+                        table[k2] = f"{full}.{k2}" if not v2.startswith(full + ".") else v2
+                        changed = True
+        if not changed:
+            break
     class_bases: dict[str, list[str]] = {}
     class_module: dict[str, str] = {}
     for p, c in collectors.items():
@@ -547,11 +630,14 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
                 class_bases[s.qualname] = s.bases
                 class_module[s.qualname] = module_name(p)
 
+    class_qualnames = {q for q, bases in class_bases.items()}
+
     # pass 2: full visit with resolution against the complete universe
     out: list[FileAnalysis] = []
     for path, tree, err in parsed:
         v = _Visitor(path, known, by_name, src_prefix, class_bases,
-                     class_module, import_maps, modules)
+                     class_module, import_maps, modules, reexports,
+                     class_qualnames)
         if tree is not None:
             v.visit(tree)
         c = collectors.get(path)

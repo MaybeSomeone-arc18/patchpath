@@ -2,7 +2,7 @@
   "method": "same discovery harness, live GitHub 2026-10-15, repos not used during development",
   "samples": {
     "pallets/itsdangerous": {
-      "generated_at": 1792054218.5997143,
+      "generated_at": 1792055805.6603625,
       "total": 4,
       "ran": 4,
       "errors": 0,
@@ -42,8 +42,8 @@
           "file_hit": true,
           "symbol_hit": true,
           "test_file_hit": false,
-          "unresolved_pct": 43,
-          "pack_seconds": 0.03,
+          "unresolved_pct": 41,
+          "pack_seconds": 0.02,
           "error": null
         },
         {
@@ -70,7 +70,7 @@
           "file_hit": true,
           "symbol_hit": false,
           "test_file_hit": false,
-          "unresolved_pct": 45,
+          "unresolved_pct": 43,
           "pack_seconds": 0.02,
           "error": null
         },
@@ -120,8 +120,8 @@
           "file_hit": true,
           "symbol_hit": true,
           "test_file_hit": false,
-          "unresolved_pct": 45,
-          "pack_seconds": 0.05,
+          "unresolved_pct": 43,
+          "pack_seconds": 0.04,
           "error": null
         },
         {
@@ -154,8 +154,8 @@
           "file_hit": true,
           "symbol_hit": true,
           "test_file_hit": false,
-          "unresolved_pct": 45,
-          "pack_seconds": 0.03,
+          "unresolved_pct": 43,
+          "pack_seconds": 0.04,
           "error": null
         }
       ]
@@ -313,6 +313,8 @@
           "error": null
         }
       ]
-    }
+    },
+    "pallets/itsdangerous_analyzer": "0.3.0",
+    "pallets/jinja_analyzer": "0.2.0"
   }
 }

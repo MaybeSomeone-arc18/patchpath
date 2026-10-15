@@ -3,7 +3,7 @@
   "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
   "issue_number": 1449,
   "issue_url": "https://github.com/pypa/packaging/issues/1449",
-  "generated_at": 1792055447.7287455,
+  "generated_at": 1792055792.0776377,
   "status": "evidence assembled",
   "issue": {
     "state": "open",
@@ -800,6 +800,81 @@
         "qualname": "tests.test_pylock_select.test_smoke_test",
         "tag": "EXACT",
         "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_validate",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock.test_validate_sequence_of_str",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_lock_no_matching_env",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_lock_without_environments",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_lock_require_python_mismatch",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_package_require_python_mismatch",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_package_select_by_marker",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_duplicate_packages",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_yield_all_types",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_missing_sdist_fallback",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select._pylock_with_wheel_and_sdist",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_extras_and_groups",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_unknown_extras",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_unknown_groups",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_unknown_groups_default_groups",
+        "tag": "EXACT",
+        "depth": 2
       }
     ],
     "src.packaging.markers.Marker.__init__": [
@@ -1417,6 +1492,84 @@
         "test": "tests.test_pylock_select.test_smoke_test",
         "tag": "EXACT",
         "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_validate",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock.test_validate_sequence_of_str",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_lock_no_matching_env",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_lock_without_environments",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_lock_require_python_mismatch",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_package_require_python_mismatch",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_package_select_by_marker",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_duplicate_packages",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_yield_all_types",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_missing_sdist_fallback",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.pylock.Pylock.validate"
+      },
+      {
+        "test": "tests.test_pylock_select.test_empty_tags_selects_sdist_instead_of_host_compatible_wheel",
+        "tag": "EXACT",
+        "depth": 3,
+        "via": "tests.test_pylock_select._pylock_with_wheel_and_sdist"
+      },
+      {
+        "test": "tests.test_pylock_select.test_empty_tags_rejects_wheel_only_lock",
+        "tag": "EXACT",
+        "depth": 3,
+        "via": "tests.test_pylock_select._pylock_with_wheel_and_sdist"
+      },
+      {
+        "test": "tests.test_pylock_select.test_prefer_sdist_predicate",
+        "tag": "EXACT",
+        "depth": 3,
+        "via": "tests.test_pylock_select._pylock_with_wheel_and_sdist"
       }
     ],
     "src.packaging.markers.Marker.__init__": [
@@ -1721,7 +1874,7 @@
     }
   ],
   "unknowns": [
-    "11% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 30% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
+    "9% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 30% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
     "1 open PR(s) reference this issue; competing work likely exists."
   ],
   "suggested_steps": [
@@ -1734,9 +1887,9 @@
     "repo": "pypa/packaging",
     "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
     "symbols": 2293,
-    "calls_exact": 6102,
-    "calls_name": 631,
-    "calls_unresolved": 1299,
+    "calls_exact": 6494,
+    "calls_name": 552,
+    "calls_unresolved": 1086,
     "calls_external": 3474
   }
 }

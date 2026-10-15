@@ -282,30 +282,22 @@ class QueryTools:
                   hops: int = 1, exact_only: bool = False) -> list[dict]:
         hops = max(1, min(hops, MAX_HOPS))
         if direction == "callers":
-            pattern = "(o:Symbol)-[c:CALLS]->(s:Symbol {qualname: $q})"
+            pattern = "(o:Symbol)-[:CALLS*1..%d]->(s:Symbol {qualname: $q})" % hops
         else:
-            pattern = "(s:Symbol {qualname: $q})-[c:CALLS]->(o:Symbol)"
-        where = " AND c.tag = 'EXACT'" if exact_only else ""
-        # bounded: hop expansion done iteratively, not variable-length, so the
-        # traversal cost is explicit
-        seen, frontier = {qualname}, [qualname]
-        out: list[dict] = []
-        for depth in range(1, hops + 1):
-            nxt = []
-            for q in frontier:
-                rows = self._rows(
-                    f"MATCH {pattern} WHERE o.kind <> 'module'{where} "
-                    "RETURN DISTINCT o.qualname, c.tag LIMIT $lim",
-                    {"q": q, "lim": MAX_RESULTS})
-                for r in rows:
-                    if r[0] in seen:
-                        continue
-                    seen.add(r[0]); nxt.append(r[0])
-                    out.append({"qualname": r[0], "tag": r[1], "depth": depth})
-                    if len(out) >= MAX_RESULTS:
-                        return out
-            frontier = nxt
-        return out
+            pattern = "(s:Symbol {qualname: $q})-[:CALLS*1..%d]->(o:Symbol)" % hops
+        exact = " AND ALL(c IN relationships(p) WHERE c.tag = 'EXACT')" \
+            if exact_only else ""
+        # one graph-native bounded traversal: the same reachable set as BFS,
+        # depth = shortest-path length, tag = final edge of a shortest path.
+        # The 3-hop cap and result cap keep the cost explicit.
+        rows = self._rows(
+            f"MATCH p = {pattern} WHERE o.kind <> 'module'{exact} "
+            "WITH o, p ORDER BY length(p) "
+            "WITH o, head(collect(p)) AS sp "
+            "RETURN o.qualname, length(sp) AS depth, "
+            "relationships(sp)[length(sp) - 1].tag AS tag LIMIT $lim",
+            {"q": qualname, "lim": MAX_RESULTS})
+        return [{"qualname": r[0], "depth": r[1], "tag": r[2]} for r in rows]
 
     # -- tool 4: tests near a symbol ------------------------------------------
     def nearby_tests(self, qualname: str) -> list[dict]:

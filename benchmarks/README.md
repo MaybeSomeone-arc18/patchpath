@@ -23,6 +23,8 @@ Three harness runs are committed:
   identical per-case outcomes again.
 - `results_2026-10-15_run6.json` - analyzer 0.7.1, same frozen inputs:
   identical per-case outcomes again.
+- `results_2026-10-15_run7.json` - graph-native traversal, same frozen
+  inputs: identical per-case outcomes again.
 
 Reproduce the sample with the database running:
 
@@ -34,6 +36,18 @@ python -m patchpath.eval --cases benchmarks/cases_2026-10-15.json \
 This is not file recall, symbol recall, or general accuracy. The symbol
 check compares bare names from diff definitions/hunk context with the
 candidate names and their one-hop caller/callee names, so it can collide.
+
+## Why the misses miss
+
+- psf/requests #6711 names no code: the issue text shares no vocabulary
+  with the fixed file, so no lexical seed exists. Accepted miss.
+- packaging #1406, click #3036 and click #3128 change no product-Python
+  file in the harness oracle (test-only fixes); they count as headline
+  misses and are separately reported through the test-file oracle (3/3).
+- packaging #1318 and requests #3698 hit the changed file but not the
+  heuristic symbol check: the symbol check compares bare diff names
+  against candidate and one-hop neighbor names, and `__init__` /
+  `content` collide too widely to be credited.
 
 ## Oracles: product files and test files
 

@@ -82,14 +82,22 @@ Fixed, parameterized tools run queries such as:
 MATCH (t:Symbol {is_test: true})-[c:CALLS]->(s:Symbol {qualname: $q})
 RETURN t.qualname, c.tag LIMIT 50
 
-MATCH (o:Symbol)-[c:CALLS]->(s:Symbol {qualname: $q})
+MATCH p = (o:Symbol)-[:CALLS*1..3]->(s:Symbol {qualname: $q})
 WHERE o.kind <> 'module'
-RETURN DISTINCT o.qualname, c.tag LIMIT 50
+WITH o, p ORDER BY length(p)
+WITH o, head(collect(p)) AS sp
+RETURN o.qualname, length(sp) AS depth,
+       relationships(sp)[length(sp) - 1].tag AS tag
+LIMIT 50
 ```
 
-Caller/callee expansion is capped at three hops and 50 results. Test
-candidates can include a final test edge after that caller expansion.
-No arbitrary model-supplied Cypher is accepted.
+The second query is the caller blast-radius: one bounded variable-length
+traversal per suspect symbol, depth being the shortest static call path.
+This is the load-bearing graph step - it is one Cypher traversal, not a
+recursive application-side walk. Caller/callee expansion is capped at
+three hops and 50 results. Test candidates can include a final test edge
+after that caller expansion. No arbitrary model-supplied Cypher is
+accepted.
 
 ## Limits and safety
 

@@ -298,3 +298,36 @@ def test_src_layout_reexport_resolution():
     calls = _by_expr(out, "tests/test_x.py")
     assert calls["pkg.echo"].tag == EXACT
     assert calls["pkg.echo"].target_qual == "src.pkg.utils.echo"
+
+
+def test_fixture_param_binds_returned_class():
+    out = analyze_files([
+        ("lib.py", "class CliRunner:\n    def invoke(self):\n        pass\n"),
+        ("conftest.py", "import pytest\nfrom lib import CliRunner\n\n\n@pytest.fixture(scope=\"function\")\ndef runner(request):\n    return CliRunner()\n"),
+        ("tests/test_args.py", "def test_nargs(runner):\n    result = runner.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "tests/test_args.py")
+    assert calls["runner.invoke"].tag == EXACT
+    assert calls["runner.invoke"].target_qual == "lib.CliRunner.invoke"
+
+
+def test_fixture_with_multiple_returns_stays_honest():
+    out = analyze_files([
+        ("lib.py", "class Runner:\n    def invoke(self):\n        pass\n"),
+        ("conftest.py", "import pytest\nfrom lib import Runner\n\n\n@pytest.fixture\ndef runner(request):\n    if request.param:\n        return Runner()\n    return Runner()\n"),
+        ("tests/test_x.py", "def test_a(runner):\n    runner.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "tests/test_x.py")
+    assert calls["runner.invoke"].tag != EXACT
+
+
+def test_fixture_name_shadowed_by_local_ctor():
+    out = analyze_files([
+        ("lib.py", "class A:\n    def go(self):\n        pass\nclass B:\n    def go(self):\n        pass\n"),
+        ("conftest.py", "import pytest\nfrom lib import A\n\n\n@pytest.fixture\ndef x():\n    return A()\n"),
+        ("t.py", "from lib import B\ndef test_y(x):\n    x = B()\n    x.go()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    # local assignment shadows the fixture binding
+    assert calls["x.go"].tag == EXACT
+    assert calls["x.go"].target_qual == "lib.B.go"

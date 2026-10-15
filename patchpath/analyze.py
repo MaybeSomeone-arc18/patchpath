@@ -170,7 +170,8 @@ class _Visitor(ast.NodeVisitor):
                  src_prefix: str, class_bases: dict[str, list[str]],
                  class_module: dict[str, str], import_maps: dict[str, dict[str, str]],
                  modules: set[str], reexports: dict[str, dict[str, str]] | None = None,
-                 class_qualnames: set[str] | None = None):
+                 class_qualnames: set[str] | None = None,
+                 fixture_types: dict[str, str] | None = None):
         self.path = path
         self.module = module_name(path)
         self.known = known_qualnames
@@ -182,6 +183,7 @@ class _Visitor(ast.NodeVisitor):
         self.modules = modules
         self.reexports = reexports or {}
         self.class_qualnames = class_qualnames or set()
+        self.fixture_types = fixture_types or {}
         self.var_types: dict[str, str] = {}
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
@@ -269,9 +271,11 @@ class _Visitor(ast.NodeVisitor):
                       referrer=func_qual)
         for d in list(node.args.defaults) + [x for x in node.args.kw_defaults if x]:
             self._ref(d, node.lineno, referrer=func_qual)
-        # local constructor bindings do not leak across function scopes
+        # local constructor bindings do not leak across function scopes;
+        # fixture-named parameters bind to the fixture's returned class
         outer_types = self.var_types
-        self.var_types = {}
+        self.var_types = {p: self.fixture_types[p] for p in _func_params(node)
+                          if p in self.fixture_types}
         self.scope.append(node.name)
         self.scope_kind.append("function")
         self.generic_visit(node)
@@ -453,9 +457,25 @@ class _Collector(ast.NodeVisitor):
         self.all_list: list[str] | None = None
         self.scope: list[str] = []
         self.scope_kind: list[str] = []
+        # pytest fixtures: name -> constructor expr of its single return call
+        self.fixture_return_exprs: dict[str, str] = {}
 
     def _qual(self, name: str) -> str:
         return ".".join([self.module, *self.scope, name])
+
+    @staticmethod
+    def _is_fixture_deco(d) -> bool:
+        f = d.func if isinstance(d, ast.Call) else d
+        s = _expr_str(f)
+        return bool(s) and s.rsplit(".", 1)[-1] == "fixture"
+
+    @staticmethod
+    def _fixture_return_expr(node) -> str | None:
+        rets = [s.value.func for s in ast.walk(node)
+                if isinstance(s, ast.Return) and isinstance(s.value, ast.Call)]
+        if len(rets) == 1:
+            return _expr_str(rets[0])
+        return None
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         bases = [b for b in (_expr_str(x) for x in node.bases) if b]
@@ -483,6 +503,10 @@ class _Collector(ast.NodeVisitor):
             getattr(node, "end_lineno", node.lineno),
             is_test=self.test_file and node.name.startswith(("test_", "Test")),
             params=_func_params(node)))
+        if any(self._is_fixture_deco(d) for d in node.decorator_list):
+            rexpr = self._fixture_return_expr(node)
+            if rexpr:
+                self.fixture_return_exprs[node.name] = rexpr
         self.scope.append(node.name)
         self.scope_kind.append("function")
         self.generic_visit(node)
@@ -632,12 +656,31 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
 
     class_qualnames = {q for q, bases in class_bases.items()}
 
+    # pytest fixtures: a test-function parameter named after a fixture whose
+    # body is a single 'return SomeClass(...)' binds that parameter to the
+    # class. Static, one-hop, EXACT-only - the same bar as _track_ctor.
+    fixture_types: dict[str, str] = {}
+    for p, c in collectors.items():
+        if not c.fixture_return_exprs:
+            continue
+        mod = module_name(p)
+        for fname, rexpr in c.fixture_return_exprs.items():
+            tq = _resolve_expr(mod, rexpr, c.import_map, known, src_prefix)
+            if not tq and "." in rexpr:
+                r0, _, r1 = rexpr.partition(".")
+                m = c.import_map.get(r0, "")
+                table = reexports.get(m) or reexports.get(src_prefix + m, {})
+                t = table.get(r1)
+                tq = t if t in known else None
+            if tq and tq in class_qualnames:
+                fixture_types.setdefault(fname, tq)
+
     # pass 2: full visit with resolution against the complete universe
     out: list[FileAnalysis] = []
     for path, tree, err in parsed:
         v = _Visitor(path, known, by_name, src_prefix, class_bases,
                      class_module, import_maps, modules, reexports,
-                     class_qualnames)
+                     class_qualnames, fixture_types)
         if tree is not None:
             v.visit(tree)
         c = collectors.get(path)

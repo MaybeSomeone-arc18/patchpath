@@ -1,7 +1,7 @@
 # Readiness pack: pypa/packaging#1449
 
 - Status: **evidence assembled**
-- Issue: https://github.com/pypa/packaging/issues/1449 (state: open, observed 2026-10-15 09:10 UTC)
+- Issue: https://github.com/pypa/packaging/issues/1449 (state: open, observed 2026-10-15 09:28 UTC)
 - Code pinned to commit `ef837aad3127167671eb37b9f6bd8a94ec7ce26e`
 
 ## Candidate code (lexical match, review before trusting)
@@ -70,7 +70,7 @@ Competing-PR search: verified (open PR bodies only, at most 10 results; not proo
 - #1450 fix(markers): raise InvalidMarker for deeply nested markers (open) https://github.com/pypa/packaging/pull/1450
 
 ## Unknowns and limits
-- 9% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 30% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.
+- 8% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 31% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.
 - 1 open PR(s) reference this issue; competing work likely exists.
 
 ## Suggested next investigation

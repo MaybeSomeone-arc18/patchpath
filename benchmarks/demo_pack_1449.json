@@ -3,7 +3,7 @@
   "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
   "issue_number": 1449,
   "issue_url": "https://github.com/pypa/packaging/issues/1449",
-  "generated_at": 1792055792.0776377,
+  "generated_at": 1792056495.3725665,
   "status": "evidence assembled",
   "issue": {
     "state": "open",
@@ -11,10 +11,10 @@
     "labels": [],
     "assignees": [],
     "comments": 0,
-    "observed_at": 1792055446.5869918,
-    "batch": "c4143959173e",
+    "observed_at": 1792056494.6213925,
+    "batch": "3ddf56c3ca01",
     "competing_work_status": "verified",
-    "competing_work_observed_at": 1792055446.8415596
+    "competing_work_observed_at": 1792056494.6213999
   },
   "candidates": [
     {
@@ -1874,7 +1874,7 @@
     }
   ],
   "unknowns": [
-    "9% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 30% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
+    "8% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 31% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
     "1 open PR(s) reference this issue; competing work likely exists."
   ],
   "suggested_steps": [
@@ -1887,9 +1887,9 @@
     "repo": "pypa/packaging",
     "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
     "symbols": 2293,
-    "calls_exact": 6494,
-    "calls_name": 552,
-    "calls_unresolved": 1086,
-    "calls_external": 3474
+    "calls_exact": 6727,
+    "calls_name": 350,
+    "calls_unresolved": 899,
+    "calls_external": 3644
   }
 }

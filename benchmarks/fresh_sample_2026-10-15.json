@@ -162,7 +162,7 @@
    "analyzer_version": "0.5.0"
   },
   "pallets/jinja": {
-   "generated_at": 1792053834.5846667,
+   "generated_at": 1792059122.5187747,
    "total": 4,
    "ran": 4,
    "errors": 0,
@@ -204,8 +204,8 @@
      "file_hit": false,
      "symbol_hit": false,
      "test_file_hit": false,
-     "unresolved_pct": 34,
-     "pack_seconds": 0.14,
+     "unresolved_pct": 32,
+     "pack_seconds": 0.21,
      "error": null
     },
     {
@@ -227,19 +227,23 @@
      "status": "evidence assembled",
      "cand_files": [
       "docs/conf.py",
+      "src/jinja2/bccache.py",
       "src/jinja2/exceptions.py",
+      "src/jinja2/filters.py",
       "src/jinja2/utils.py"
      ],
      "cand_symbols": [
       "src.jinja2.exceptions.UndefinedError",
       "docs.conf.project",
-      "src.jinja2.utils.missing"
+      "src.jinja2.utils.missing",
+      "src.jinja2.filters.do_attr",
+      "src.jinja2.bccache.FileSystemBytecodeCache.dump_bytecode.remove_silent"
      ],
      "file_hit": false,
      "symbol_hit": false,
      "test_file_hit": false,
-     "unresolved_pct": 34,
-     "pack_seconds": 0.13,
+     "unresolved_pct": 32,
+     "pack_seconds": 0.2,
      "error": null
     },
     {
@@ -261,18 +265,21 @@
      "status": "evidence assembled",
      "cand_files": [
       "src/jinja2/environment.py",
+      "src/jinja2/parser.py",
       "src/jinja2/utils.py"
      ],
      "cand_symbols": [
       "src.jinja2.environment.Template.filename",
       "src.jinja2.utils.missing",
-      "src.jinja2.environment.Environment"
+      "src.jinja2.environment.Environment",
+      "src.jinja2.parser.Parser.parse_with",
+      "src.jinja2.environment.Environment.overlay"
      ],
      "file_hit": false,
      "symbol_hit": false,
      "test_file_hit": false,
-     "unresolved_pct": 34,
-     "pack_seconds": 0.13,
+     "unresolved_pct": 32,
+     "pack_seconds": 0.21,
      "error": null
     },
     {
@@ -309,13 +316,14 @@
      "file_hit": true,
      "symbol_hit": true,
      "test_file_hit": true,
-     "unresolved_pct": 34,
-     "pack_seconds": 0.18,
+     "unresolved_pct": 32,
+     "pack_seconds": 0.24,
      "error": null
     }
-   ]
+   ],
+   "analyzer_version": "0.7.1"
   },
   "pallets/itsdangerous_analyzer": "0.5.0",
-  "pallets/jinja_analyzer": "0.2.0"
+  "pallets/jinja_analyzer": "0.7.1"
  }
 }

@@ -62,9 +62,9 @@ run the same day on two repos not used during development:
 
 - pallets/itsdangerous: 4/4 file hits, 3/4 with symbol hit (analyzer
   0.5.0; same cases as the 0.2.0 and 0.3.0 runs, same outcome).
-- pallets/jinja: 1/4 file hits (analyzer 0.2.0). The misses are
-  compiler-internals issues whose text shares little vocabulary with
-  the fixed code.
+- pallets/jinja: 1/4 file hits (analyzer 0.7.1; same cases as the
+  0.2.0 run, same outcome). The misses are compiler-internals issues
+  whose text shares little vocabulary with the fixed code.
 
 A later jinja rerun could not score one case because the GitHub API rate
 limit blocked the fix-commit fetch; that artifact is not included.

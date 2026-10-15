@@ -48,6 +48,17 @@ class Registry:
             (error, time.time(), snapshot_id))
         self.conn.commit()
 
+    def latest_ready(self) -> dict | None:
+        """Most recently updated READY snapshot, or None."""
+        row = self.conn.execute(
+            "SELECT repo, sha, graph_name, stats_json FROM snapshots "
+            "WHERE status='READY' ORDER BY updated_at DESC LIMIT 1").fetchone()
+        if not row:
+            return None
+        repo, sha, graph, stats = row
+        return {"repo": repo, "sha": sha, "graph": graph,
+                "stats": json.loads(stats or "{}")}
+
     def get_ready(self, snapshot_id: str) -> dict | None:
         row = self.conn.execute(
             "SELECT repo, sha, graph_name, stats_json FROM snapshots WHERE snapshot_id=? AND status='READY'",

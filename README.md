@@ -77,6 +77,22 @@ The pack is written to `data/packets/` as Markdown + JSON.
 - Static paths are not proof of bug causality or a complete blast radius;
   unresolved calls stay visible as gaps.
 
+## MCP server (optional)
+
+PatchPath's six read-only tools can be served to any MCP-capable agent
+client over stdio:
+
+```bash
+pip install -r requirements-mcp.txt
+python -m patchpath.mcp_server --repo pypa/packaging
+```
+
+Tools: `snapshot_status`, `find_candidates`, `inspect_symbol`, `neighbors`,
+`nearby_tests`, `constraint_files`. The server is read-only - it can query
+the local snapshot graphs and nothing else. Example client config (Claude
+Desktop style): command `python`, args `["-m", "patchpath.mcp_server",
+"--repo", "owner/name"]`.
+
 ## Measured results (not marketing)
 
 Evaluation harness: `python -m patchpath.eval`. Method: ingest the snapshot

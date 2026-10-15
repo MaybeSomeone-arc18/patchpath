@@ -1,0 +1,10 @@
+{
+  "repo": "pypa/packaging",
+  "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+  "symbols": 2293,
+  "calls_exact": 6102,
+  "calls_name": 657,
+  "calls_unresolved": 4747,
+  "derived_constructor_edges": 1856,
+  "ast_call_records": 9604
+}

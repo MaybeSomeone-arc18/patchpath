@@ -155,6 +155,7 @@ def main() -> int:
     ap.add_argument("--per-repo", type=int, default=4)
     ap.add_argument("--curate-only", action="store_true")
     ap.add_argument("--cases", help="JSON file of explicit cases")
+    ap.add_argument("--issue-evidence", help="directory of recorded issue cache JSON; replay text, not live availability")
     args = ap.parse_args()
 
     http = httpx.Client(headers={"User-Agent": UA,
@@ -173,6 +174,12 @@ def main() -> int:
         return 0
 
     issue_client = IssueClient(DATA / "issue_cache")
+    if args.issue_evidence:
+        class RecordedIssueClient:
+            def fetch(self, repo, number):
+                fp = Path(args.issue_evidence) / (repo.replace("/", "__") + f"__{number}.json")
+                return IssueEvidence(**json.loads(fp.read_text())["evidence"])
+        issue_client = RecordedIssueClient()
     results: list[Result] = []
     for i, case in enumerate(cases, 1):
         try:
@@ -181,6 +188,7 @@ def main() -> int:
         except Exception as e:
             print(f"[{i}/{len(cases)}] {case.repo}#{case.issue}: fix details failed: {e}",
                   file=sys.stderr)
+            results.append(Result(case=case, status="error", error=f"fix details failed: {e}"))
             continue
         print(f"[{i}/{len(cases)}] {case.repo}#{case.issue} "
               f"(parent {case.parent_sha[:8]}, files {case.fixed_files})",
@@ -190,12 +198,16 @@ def main() -> int:
     n = len(results)
     ok = [r for r in results if not r.error]
     file_hits = sum(1 for r in ok if r.file_hit)
-    sym_hits = sum(1 for r in ok if r.symbol_hit)
+    sym_hits = sum(1 for r in ok if r.file_hit and r.symbol_hit)
     report = {
         "generated_at": time.time(),
-        "total": n, "ran": len(ok),
-        "file_recall": f"{file_hits}/{len(ok)}",
-        "symbol_recall": f"{sym_hits}/{len(ok)}",
+        "total": n, "ran": len(ok), "errors": n - len(ok),
+        "file_hit_at_5": f"{file_hits}/{n}",
+        "file_and_symbol_hit": f"{sym_hits}/{n}",
+        "cases_without_product_python_oracle": [
+            {"repo": r.case.repo, "issue": r.case.issue}
+            for r in results if not r.case.fixed_files],
+        "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus one-hop neighbors, not recall.",
         "results": [asdict(r) for r in results],
     }
     out = DATA / "packets" / f"eval_{int(time.time())}.json"
@@ -208,7 +220,7 @@ def main() -> int:
                                             ("SYM" if r.symbol_hit else "MISS")))
         print(f"  {mark:9} {r.case.repo}#{r.case.issue} {r.error or ''}")
     print(f"[eval] wrote {out}")
-    return 0
+    return 1 if report["errors"] else 0
 
 
 if __name__ == "__main__":

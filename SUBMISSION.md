@@ -1,29 +1,57 @@
 # Graph Hacks submission notes
 
-**Track:** 01 - Agents That Act on Connected Data
+Track: 01 - Agents That Act on Connected Data.
 
-**AI-use disclosure (rule 11):** PatchPath was designed and built with AI
-coding assistance (Instinct). The participant chose the concept, set the
-scope and constraints (read-only, no auto-claims, honesty model), reviewed
-the architecture, and can explain the graph model, the Cypher queries, and
-the design decisions. All demo outputs shown are real runs; evaluation
-numbers are measured by `patchpath/eval.py` and include the failure case.
+## What it does
 
-**What the graph does (rule 3):** FalkorDB stores the snapshot's
-files/symbols/tests and the CALLS/IMPORTS relationships; every pack section
-(candidates, callers, test candidates, constraint files) comes from bounded
-Cypher traversals. Without FalkorDB the product has no investigation paths;
-there is no keyword fallback presented as graph output.
+PatchPath builds a commit-pinned evidence pack before a contributor starts
+an open-source issue: lexical candidate symbols, static callers and test
+candidates, contribution-document paths, assignees and open PR body-search
+results. It never claims an issue, comments, opens PRs or runs target code.
 
-**Deployment:** local-first, no hosted service (zero-spend constraint).
-Complete local setup is in README.md (Docker + pip). Demo video: 60s,
-terminal capture of real runs.
+FalkorDB stores files/symbols and CALLS/IMPORTS relationships. Fixed,
+parameterized graph tools query candidates and bounded investigation
+paths. Candidate ranking is lexical, not an LLM reasoning benchmark.
+SQLite holds snapshot readiness metadata, not the relationship graph.
 
-**Known limits (stated, not hidden):** static analysis cannot resolve
-dynamic dispatch/decorators/monkey-patching - those stay visible as
-UNRESOLVED edges with the percentage reported in every pack. Issue evidence
-requires the public GitHub API; when it is rate-limited the pack says
-"state unverified" and makes no availability claim. Eval: 5/6 file+symbol
-recall on the curated set, and on a fresh auto-discovered sample (11 issues,
-never hand-picked) 5/11 file+symbol / 7/11 file-level; the misses are
-issues whose text names no code.
+## Evidence
+
+At packaging ef837aad3127167671eb37b9f6bd8a94ec7ce26e: 2,293 non-module
+symbols and 11,506 stored CALLS edges (6,102 EXACT / 657 NAME_ONLY /
+4,747 UNRESOLVED, rounded 53/6/41%). Totals include 1,856 derived
+constructor edges and are not unique source call counts or accuracy.
+
+Frozen raw auto-discovered sample, 2026-10-15: 7/12 issue-level
+any-changed-product-file hits among the first five candidate symbols;
+5/12 also have a heuristic symbol hit; zero runtime errors. Three cases
+have no product-Python file in the harness oracle and count as misses.
+The symbol diagnostic uses bare names and one-hop neighbors, not recall.
+Issue text was observed after the fixes. Full cases, text and outcomes are
+committed under benchmarks/; no historical curated score is claimed.
+
+## Known limits
+
+AST analysis is incomplete. Some dynamic/chained calls are omitted;
+UNRESOLVED only counts captured edges. Static test candidates are not
+executed. Hash checks verify local source against the ingested file hash.
+GitHub issue/PR API failures are explicitly unverified. PR search only
+checks open PR bodies for the number and can miss competing work.
+No issue-availability or patch-correctness verdict is made.
+
+## Deployment and demo
+
+Local-first, no hosted service or paid model dependency. README has the
+Docker/pip setup and optional read-only MCP stdio server. The short demo
+uses designed visuals; decorative graph animation is not the actual graph
+layout. Counts and example issue/PR are from real runs. Upload the corrected
+video and update its final link before submitting.
+
+## AI-use disclosure
+
+Designed and built with AI coding assistance (Instinct), including design,
+implementation, debugging, verification and demo preparation. The
+participant chose the concept and set scope/constraints. Before submitting,
+the participant should confirm that the description of their own work and
+understanding is accurate, and complete any required walkthrough. This file
+does not claim they have completed a code review or can already explain
+all implementation choices.

@@ -59,13 +59,20 @@ def _github_url(repo: str, sha: str, path: str, ls: int, le: int) -> str:
 
 
 def validate_citation(snapshot_root: Path, repo: str, sha: str,
-                      path: str, ls: int, le: int) -> Citation:
+                      path: str, ls: int, le: int, expected_hash: str | None = None) -> Citation:
     """Re-read the stored source at the pinned SHA and hash the cited lines."""
     import hashlib
-    fp = snapshot_root / path
+    fp = (snapshot_root / path).resolve()
+    if not fp.is_relative_to(snapshot_root.resolve()):
+        raise CitationError(f"cited path escapes snapshot: {path}")
+    if not expected_hash:
+        raise CitationError(f"no stored file hash for citation: {path}")
     if not fp.exists():
         raise CitationError(f"cited file missing from snapshot: {path}")
-    lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
+    raw = fp.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_hash:
+        raise CitationError(f"snapshot file hash mismatch: {path}")
+    lines = raw.decode("utf-8", errors="replace").splitlines()
     if ls < 1 or le > len(lines) or ls > le:
         raise CitationError(f"cited range {path}:{ls}-{le} outside file ({len(lines)} lines)")
     excerpt = "\n".join(lines[ls - 1:le])
@@ -86,8 +93,14 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
         status = "state unverified"
         unknowns.append("Issue state could not be verified "
                         f"({ev.fetch_error or 'fetch failed'}); no availability claim.")
+    if ev.competing_work_status != "verified":
+        status = "state unverified"
+        unknowns.append("Competing work unverified: " +
+                        (ev.competing_work_error or "PR search not completed") +
+                        "; an empty PR list does not mean no competing work.")
     if not cands:
-        status = "needs investigation"
+        if status != "state unverified":
+            status = "needs investigation"
         unknowns.append("No symbol in this snapshot matches identifiers in the "
                         "issue text; the affected code may be elsewhere or unnamed.")
 
@@ -97,7 +110,9 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
         generated_at=time.time(), status=status,
         issue={"state": ev.state, "title": ev.title, "labels": ev.labels,
                "assignees": ev.assignees, "comments": ev.comments,
-               "observed_at": ev.observed_at, "batch": ev.batch_id},
+               "observed_at": ev.observed_at, "batch": ev.batch_id,
+               "competing_work_status": ev.competing_work_status,
+               "competing_work_observed_at": ev.competing_work_observed_at},
         candidates=cands, constraint_files=tools.constraint_files(),
         linked_prs=ev.linked_prs, unknowns=unknowns, graph_stats=stats)
 
@@ -117,7 +132,8 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
         if card:
             pack.citations.append(validate_citation(
                 snapshot_root, stats["repo"], stats["sha"],
-                card["file"], card["line_start"], card["line_end"]))
+                card["file"], card["line_start"], card["line_end"],
+                card.get("file_hash")))
 
     unresolved = stats["calls_unresolved"]
     total = stats["calls_exact"] + stats["calls_name"] + unresolved
@@ -125,7 +141,8 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
         pct = round(100 * unresolved / total)
         pack.unknowns.append(
             f"{pct}% of call sites in this snapshot are statically unresolved "
-            "(dynamic dispatch, decorators, monkey-patching); paths are a "
+            "(includes external and dynamic targets); some dynamic/chained calls "
+            "are omitted entirely. Paths are a "
             "starting point, not a blast radius.")
     if ev.assignees:
         pack.unknowns.append(
@@ -190,6 +207,9 @@ def render_markdown(p: Packet) -> str:
         for f in p.constraint_files:
             L.append(f"- `{esc(f)}`")
         L.append("")
+    L.append("Competing-PR search: " + esc(p.issue.get("competing_work_status", "unverified")) +
+             " (open PR bodies only, at most 10 results; not proof of availability).")
+    L.append("")
     if p.linked_prs:
         L.append("## Open PRs referencing this issue (competing work)")
         for pr in p.linked_prs:

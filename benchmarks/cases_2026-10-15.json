@@ -1,0 +1,138 @@
+[
+  {
+    "repo": "pypa/packaging",
+    "issue": 1406,
+    "fix_sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+    "parent_sha": "ae9d39c13b5f5485b6295eb100b08ef9c3dde852",
+    "fixed_files": [],
+    "fixed_symbols": []
+  },
+  {
+    "repo": "pypa/packaging",
+    "issue": 577,
+    "fix_sha": "26fa1d42ccd98010d5fcf701dd10069e761b034c",
+    "parent_sha": "826426fc88773515fab149a5f6bde85761e57fbb",
+    "fixed_files": [
+      "src/packaging/tags.py",
+      "src/packaging/utils.py"
+    ],
+    "fixed_symbols": [
+      "UnsortedTagsError",
+      "parse_tag",
+      "parse_wheel_filename"
+    ]
+  },
+  {
+    "repo": "pypa/packaging",
+    "issue": 1231,
+    "fix_sha": "9c6f09ba6b313a561d6a64d988647ff3115e82ae",
+    "parent_sha": "206834025040aca6f8a2fdfc4039dbfa2a9861a6",
+    "fixed_files": [
+      "src/packaging/utils.py"
+    ],
+    "fixed_symbols": [
+      "canonicalize_name"
+    ]
+  },
+  {
+    "repo": "pypa/packaging",
+    "issue": 1318,
+    "fix_sha": "d3e7f5d96da0c27103324cb9fb349b54e753a877",
+    "parent_sha": "9a11fba3d53215dc2ff08d8e9d0d5780c08fbe8f",
+    "fixed_files": [
+      "src/packaging/version.py"
+    ],
+    "fixed_symbols": [
+      "__init__"
+    ]
+  },
+  {
+    "repo": "psf/requests",
+    "issue": 6813,
+    "fix_sha": "d58d8aa2f45c3575268d6d5250745ef69f9cf8b7",
+    "parent_sha": "91a3eabd3dcc4d7f36dd8249e4777a90ef9b4305",
+    "fixed_files": [
+      "src/requests/sessions.py"
+    ],
+    "fixed_symbols": [
+      "request"
+    ]
+  },
+  {
+    "repo": "psf/requests",
+    "issue": 6711,
+    "fix_sha": "fd628095d7b9ddbf3e987d8a4bf0e6062768916f",
+    "parent_sha": "e8d2c015eecda8273612dd4562425e00cd164ba5",
+    "fixed_files": [
+      "src/requests/adapters.py"
+    ],
+    "fixed_symbols": [
+      "request_url"
+    ]
+  },
+  {
+    "repo": "psf/requests",
+    "issue": 7375,
+    "fix_sha": "b294b08fe3b08df9f646f64d1250f96193dab066",
+    "parent_sha": "5f3ff9b9e4d3d44960467e7877e06e9efa22f20b",
+    "fixed_files": [
+      "src/requests/__init__.py"
+    ],
+    "fixed_symbols": [
+      "check_compatibility"
+    ]
+  },
+  {
+    "repo": "psf/requests",
+    "issue": 3698,
+    "fix_sha": "36c9c8c3de87db42295f68ee72503238895e7dfe",
+    "parent_sha": "dfad00a6e84bc75b12468ca29ccf4f971c813fc8",
+    "fixed_files": [
+      "requests/models.py"
+    ],
+    "fixed_symbols": [
+      "content"
+    ]
+  },
+  {
+    "repo": "pallets/click",
+    "issue": 3036,
+    "fix_sha": "e5cb12ba5e81ca382062a4b513daddb535a576e3",
+    "parent_sha": "00f257bb8e714064bea16425007543bbc0800445",
+    "fixed_files": [],
+    "fixed_symbols": []
+  },
+  {
+    "repo": "pallets/click",
+    "issue": 3487,
+    "fix_sha": "a5f5aa6d4012d256ccca24638f2642fc371e9f77",
+    "parent_sha": "d42f15b71757de791a5781fb179fd972da9169f5",
+    "fixed_files": [
+      "src/click/utils.py"
+    ],
+    "fixed_symbols": [
+      "__iter__",
+      "echo"
+    ]
+  },
+  {
+    "repo": "pallets/click",
+    "issue": 3084,
+    "fix_sha": "ebcd548d50662bc8fa4f8b9ec7fe13cb8310bfaa",
+    "parent_sha": "7f7bbe4569ea68e8dabee232eade069ef3310aea",
+    "fixed_files": [
+      "src/click/core.py"
+    ],
+    "fixed_symbols": [
+      "__init__"
+    ]
+  },
+  {
+    "repo": "pallets/click",
+    "issue": 3128,
+    "fix_sha": "a92c573f3195c9da3058eadf1735d38af186d22c",
+    "parent_sha": "0b5c6b75f617e6ee2f9f6dcd071b8a4bf183d1ed",
+    "fixed_files": [],
+    "fixed_symbols": []
+  }
+]

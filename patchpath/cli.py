@@ -59,7 +59,7 @@ def cmd_ingest(args) -> int:
         gs.db.connection.ping()
     except Exception:
         print("error: FalkorDB is not reachable on 127.0.0.1:6380 - start it "
-              "(docker run -p 6379:6379 falkordb/falkordb:6.0.2) and retry. "
+              "(docker run -p 6380:6379 falkordb/falkordb:6.0.2) and retry. "
               "No new investigation is possible while the graph is down; "
               "previously built packs in data/packets/ are historical.",
               file=sys.stderr)

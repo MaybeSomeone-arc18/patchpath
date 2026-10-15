@@ -31,6 +31,9 @@ class IssueEvidence:
     assignees: list[str] = field(default_factory=list)
     comments: int = 0
     linked_prs: list[dict] = field(default_factory=list)  # number, state, title, url
+    competing_work_status: str = "unverified"
+    competing_work_error: str | None = None
+    competing_work_observed_at: float | None = None
     fetch_error: str | None = None
 
     @property
@@ -67,7 +70,8 @@ class IssueClient:
                 saved = json.loads(cp.read_text())
                 cached = IssueEvidence(**saved["evidence"])
                 etag = saved.get("etag")
-                if time.time() - cached.observed_at < max_age:
+                if (cached.competing_work_status == "verified" and
+                        time.time() - cached.observed_at < max_age):
                     return cached
             except Exception:
                 cached = None
@@ -78,6 +82,7 @@ class IssueClient:
             r = self.http.get(f"{API}/repos/{repo}/issues/{number}", headers=headers)
             if r.status_code == 304 and cached:
                 cached.observed_at = time.time()
+                self._fetch_linked_prs(cached)
                 self._save(cp, cached, etag)
                 return cached
             if r.status_code == 403 and "rate limit" in r.text.lower():
@@ -97,8 +102,8 @@ class IssueClient:
             ev.labels = [l["name"] for l in d.get("labels", [])][:20]
             ev.assignees = [a["login"] for a in d.get("assignees", [])][:10]
             ev.comments = d.get("comments", 0)
-            self._save(cp, ev, r.headers.get("ETag"))
             self._fetch_linked_prs(ev)
+            self._save(cp, ev, r.headers.get("ETag"))
             return ev
         except httpx.HTTPError as e:
             ev.fetch_error = f"{e.__class__.__name__}: network failure; state unverified"
@@ -106,23 +111,30 @@ class IssueClient:
 
     def _fetch_linked_prs(self, ev: IssueEvidence) -> None:
         """Open PRs that reference this issue (search API, one call)."""
+        ev.linked_prs = []
+        ev.competing_work_status = "unverified"
+        ev.competing_work_error = None
+        ev.competing_work_observed_at = time.time()
         try:
             r = self.http.get(
                 f"{API}/search/issues",
                 params={"q": f"repo:{ev.repo} is:pr is:open {ev.number} in:body",
                         "per_page": 10})
-            if r.status_code == 403:
-                return  # leave empty; absence is not evidence of no work
             r.raise_for_status()
-            for item in r.json().get("items", []):
+            data = r.json()
+            if data.get("incomplete_results"):
+                raise ValueError("GitHub search returned incomplete results")
+            ev.competing_work_status = "verified"
+            for item in data.get("items", []):
                 url = item.get("html_url", "")
                 if not url.startswith("https://github.com/"):
                     url = f"https://github.com/{ev.repo}/pull/{item['number']}"
                 ev.linked_prs.append({
                     "number": item["number"], "state": item["state"],
                     "title": item.get("title", ""), "url": url})
-        except httpx.HTTPError:
-            pass
+        except (httpx.HTTPError, ValueError, KeyError) as e:
+            ev.competing_work_status = "unverified"
+            ev.competing_work_error = f"{e.__class__.__name__}: competing-PR search failed"
 
     def _save(self, cp: Path, ev: IssueEvidence, etag: str | None) -> None:
         cp.write_text(json.dumps({"etag": etag, "evidence": asdict(ev)}))

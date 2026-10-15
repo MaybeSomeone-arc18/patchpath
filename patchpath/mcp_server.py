@@ -5,7 +5,8 @@ Install: pip install -r requirements-mcp.txt
 Run:     python -m patchpath.mcp_server [--snapshot SNAP_ID]
 
 The server is read-only: it can only query the local snapshot graphs. It
-cannot ingest, write, or touch the network.
+cannot ingest or write. It connects to the local FalkorDB server;
+this is not OS-enforced network isolation.
 """
 import argparse
 import json
@@ -45,8 +46,8 @@ def find_candidates(issue_text: str, title: str = "") -> str:
 
 @mcp.tool()
 def inspect_symbol(qualname: str) -> str:
-    """Definition card for one symbol: file, lines, signature, docstring,
-    call-edge tag counts."""
+    """Definition card for one symbol: id, name, kind, file, line range,
+    and stored source-file hash."""
     return _dump(_qt().inspect_symbol(qualname))
 
 
@@ -68,8 +69,8 @@ def nearby_tests(qualname: str) -> str:
 
 @mcp.tool()
 def constraint_files() -> str:
-    """Repo files that constrain contributions (CONTRIBUTING, CI configs,
-    lint/test config) detected in the snapshot."""
+    """Contribution-document paths detected by filename (for example
+    CONTRIBUTING, AGENTS, HACKING). Does not interpret their contents."""
     return _dump(_qt().constraint_files())
 
 

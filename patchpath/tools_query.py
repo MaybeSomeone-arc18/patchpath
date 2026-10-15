@@ -127,13 +127,13 @@ class QueryTools:
     def inspect_symbol(self, qualname: str) -> dict | None:
         rows = self._rows(
             "MATCH (s:Symbol {qualname: $q})-[:DEFINED_IN]->(f:File) "
-            "RETURN s.id, s.kind, s.line_start, s.line_end, f.path LIMIT 1",
+            "RETURN s.id, s.kind, s.line_start, s.line_end, f.path, f.hash LIMIT 1",
             {"q": qualname})
         if not rows:
             return None
         r = rows[0]
         return {"symbol_id": r[0], "qualname": qualname, "kind": r[1],
-                "line_start": r[2], "line_end": r[3], "file": r[4]}
+                "line_start": r[2], "line_end": r[3], "file": r[4], "file_hash": r[5]}
 
     # -- tool 3: bounded callers/callees -------------------------------------
     def neighbors(self, qualname: str, direction: str = "callers",

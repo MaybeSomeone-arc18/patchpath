@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import re
 import tarfile
 from dataclasses import dataclass, field
 
@@ -74,6 +75,9 @@ def resolve_sha(repo: str, ref: str | None = None) -> tuple[str, str]:
     Uses `git ls-remote` (no GitHub API quota). Returns (sha, default_branch).
     """
     import subprocess
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) or any(
+            part in (".", "..") for part in repo.split("/")):
+        raise AcquireError("repo must be owner/name on public GitHub")
     env = {"GIT_TERMINAL_PROMPT": "0", "PATH": "/usr/bin:/bin:/usr/local/bin"}
     url = f"https://github.com/{repo}.git"
 
@@ -111,7 +115,18 @@ def resolve_sha(repo: str, ref: str | None = None) -> tuple[str, str]:
     if not sha or not all(c in "0123456789abcdef" for c in sha.lower()) or len(sha) != 40:
         # maybe the ref IS a sha already; verify it exists in the repo
         if ref and len(ref) >= 7 and all(c in "0123456789abcdef" for c in ref.lower()):
-            return ref, default_branch
+            if len(ref) == 40:
+                return ref.lower(), default_branch
+            with _client() as client:
+                try:
+                    r = client.get(f"{API_BASE}/repos/{repo}/commits/{ref}")
+                    r.raise_for_status()
+                    resolved = r.json()["sha"]
+                except (httpx.HTTPError, ValueError, KeyError) as e:
+                    raise AcquireError(f"could not resolve abbreviated SHA: {ref}") from e
+            if not re.fullmatch(r"[0-9a-f]{40}", resolved):
+                raise AcquireError("GitHub did not return a full commit SHA")
+            return resolved, default_branch
         raise AcquireError(f"ref not found: {ref}")
     return sha, default_branch
 
@@ -143,6 +158,8 @@ def fetch_snapshot(repo: str, sha: str) -> Snapshot:
 def _safe_member(name: str) -> str | None:
     """Normalize a tar member path; None means reject."""
     # Strip the leading "<repo>-<sha>/" root folder GitHub adds.
+    if name.startswith("/") or "\\" in name:
+        return None
     parts = [p for p in name.split("/") if p not in ("", ".")]
     if len(parts) < 2:
         return None

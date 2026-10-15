@@ -97,7 +97,7 @@ def make_app(token: str) -> FastAPI:
         snaps = [{"repo": r[0], "sha": r[1], "stats": json.loads(r[2] or "{}")}
                  for r in rows]
         pdir = DATA / "packets"
-        packs = sorted(p.stem for p in pdir.glob("*.json")) if pdir.exists() else []
+        packs = sorted(p.stem for p in pdir.glob("pack_*.json")) if pdir.exists() else []
         return env.get_template("page").render(authed=True, csrf=csrf,
                                                snaps=snaps, packs=packs)
 

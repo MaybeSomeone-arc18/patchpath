@@ -1,0 +1,1736 @@
+{
+  "repo": "pypa/packaging",
+  "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+  "issue_number": 1449,
+  "issue_url": "https://github.com/pypa/packaging/issues/1449",
+  "generated_at": 1792042867.590263,
+  "status": "evidence assembled",
+  "issue": {
+    "state": "open",
+    "title": "Deeply nested markers raise `RecursionError` instead of `InvalidMarker` / `InvalidRequirement`",
+    "labels": [],
+    "assignees": [],
+    "comments": 0,
+    "observed_at": 1792042867.0243225,
+    "batch": "0efc77cc9b77",
+    "competing_work_status": "verified",
+    "competing_work_observed_at": 1792042867.2251673
+  },
+  "candidates": [
+    {
+      "symbol_id": "1645a7a6105bfc81",
+      "qualname": "src.packaging.markers.InvalidMarker",
+      "kind": "class",
+      "reason": "name 'InvalidMarker' appears in the issue title"
+    },
+    {
+      "symbol_id": "cd0def7bd267bd44",
+      "qualname": "src.packaging.requirements.InvalidRequirement",
+      "kind": "class",
+      "reason": "name 'InvalidRequirement' appears in the issue title"
+    },
+    {
+      "symbol_id": "a304241214c6ad5f",
+      "qualname": "src.packaging.metadata.Metadata.from_email",
+      "kind": "method",
+      "reason": "full dotted name 'src.packaging.metadata.Metadata.from_email' in issue text"
+    },
+    {
+      "symbol_id": "0559d32459e7db50",
+      "qualname": "src.packaging.pylock.Pylock.from_dict",
+      "kind": "method",
+      "reason": "full dotted name 'src.packaging.pylock.Pylock.from_dict' in issue text"
+    },
+    {
+      "symbol_id": "5d6a2f768926260a",
+      "qualname": "src.packaging.markers.Marker.__init__",
+      "kind": "method",
+      "reason": "full dotted name 'src.packaging.markers.Marker.__init__' in issue text"
+    }
+  ],
+  "callers": {
+    "src.packaging.markers.InvalidMarker": [
+      {
+        "qualname": "src.packaging.markers.Marker.__init__",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "benchmarks.markers.TimeMarkerSuite.setup",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "benchmarks.markers.TimeMarkerSuite.time_constructor",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_prefers_pep440",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_new_string_rules",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_fails_when_undefined",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_arbitrary_equality_on_non_version_key_is_undefined",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_allows_prerelease",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_valid",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid_trailing_line_break",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid_malformed_quoted_string",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_str_repr_eq_hash",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_different_markers_different_hashes",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_compare_markers_to_other_objects",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_assumes_empty_extra",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_with_extra_none",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_with_no_extras",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluates",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_pep345_valid",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_pep345_markers",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_setuptools_legacy_valid",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_setuptools_legacy_markers",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extra_compared_to_variable_not_normalized",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_nested_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_membership_value_str_normalization",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_membership_value_str_normalization_negated",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_python_full_version_untagged_user_provided",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_python_full_version_untagged",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_does_not_mutate_cached_environment",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extras_and_dependency_groups",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extras_and_dependency_groups_disallowed",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_missing_environment_key_raises_undefined_environment_name",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_set_valued_marker_on_lhs_raises_undefined_comparison",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_version_like_equality",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_and_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_and_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_or_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_or_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_operator_rejects_non_marker",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_inplace_operators_fallback",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_right_hand_ops_and_typeerror",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_chaining_associativity_and_str",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_str_preserves_nested_group_precedence",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_hash_eq_for_combined_markers",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_evaluation_of_combined_markers",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_pickle_marker_roundtrip",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_markers.test_pickle_marker_old_format_loads",
+        "tag": "EXACT",
+        "depth": 2
+      }
+    ],
+    "src.packaging.requirements.InvalidRequirement": [
+      {
+        "qualname": "src.packaging.requirements.Requirement.__init__",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "benchmarks.requirement.TimeRequirementSuite.time_constructor",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "src.packaging.dependency_groups.DependencyGroupResolver._parse_group",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "src.packaging.metadata._Validator._process_requires_dist",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "src.packaging.requirements.Requirement.__setstate__",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tasks.select_pypi_dist.valid_requirement",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_pep808_dynamic_with_static_values",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.test_basic_valid_requirement_parsing",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.test_normalized_requirements",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.test_requirement_marker_with_embedded_double_quote_round_trips",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_valid_marker",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_file_url",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_suffixed_with_line_break",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_url_embeds_line_break",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_empty_extras",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_empty_specifier",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_nonempty_arbitrary_version",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_specifier_set_rejects_parsed_specifier",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_empty_string",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_no_name",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_missing_comma_in_extras",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_trailing_comma_in_extras",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_parens_not_closed_correctly",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_prefix_match_is_used_incorrectly",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_prefix_match_uses_post_release",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_prefix_match_uses_post_release_without_spaces",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_local_version_label_is_used_incorrectly",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_bracket_not_closed_correctly",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_extras_bracket_left_unclosed",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_no_space_after_url",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_marker_bracket_unclosed",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_no_url_after_at",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_lvalue",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_rvalue",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_malformed_quoted_string",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_notin_without_whitespace",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_when_no_word_boundary",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_not_without_in",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_invalid_marker_with_invalid_op",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_legacy_version_outside_triple_equals",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_missing_version_after_op",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_missing_arbitrary_version",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_missing_op_after_name",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_random_char_after_specifier",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementParsing.test_error_on_missing_comma_in_specifier",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementBehaviour.test_types_with_nothing",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementBehaviour.test_types_with_specifier_and_marker",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementBehaviour.test_types_with_url",
+        "tag": "EXACT",
+        "depth": 2
+      },
+      {
+        "qualname": "tests.test_requirements.TestRequirementBehaviour.test_str_and_repr",
+        "tag": "EXACT",
+        "depth": 2
+      }
+    ],
+    "src.packaging.metadata.Metadata.from_email": [
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_empty_import_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_validate_returns_valid_metadata",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_unparsed",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_validate",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_description_content_type_lowercase_charset",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_unparsed_valid_field_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_empty_metadata_uses_from_email_error_message",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_collects_unparsed_field_with_valid_raw_metadata",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_collects_unparsed_and_invalid_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_collects_required_fields_after_unparsed_known_header",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_collects_unknown_and_invalid_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_keeps_non_metadata_validation_errors",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_deduplicates_unparsed_required_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_metadata.TestMetadata.test_from_email_wraps_description_content_type_parse_errors",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ],
+    "src.packaging.pylock.Pylock.from_dict": [
+      {
+        "qualname": "src.packaging.pylock.Pylock.validate",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_toml_roundtrip",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_unsupported_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_unexpected_type",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_bool_rejected_for_int",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_missing_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_missing_created_by",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_missing_packages",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_packages_without_dist",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_packages_with_dist_and_archive",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_packages_with_archive_directory_and_vcs",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_basic_package",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_vcs_package",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_archive",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_mixed_path_separators",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_wheel_filename",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_inconsistent_wheel_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_inconsistent_wheel_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_sdist_filename",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_inconsistent_sdist_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_inconsistent_sdist_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_wheel",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_environments",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_invalid_environments_type",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_extras_and_groups",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_tool",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_pylock_package_not_a_table",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_extras_name_validation",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_validate_attestation_identity_missing_kind",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock.test_validate_attestation_identity_invalid_kind",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_pylock_select.test_smoke_test",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ],
+    "src.packaging.markers.Marker.__init__": [
+      {
+        "qualname": "benchmarks.markers.TimeMarkerSuite.setup",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "benchmarks.markers.TimeMarkerSuite.time_constructor",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_prefers_pep440",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_new_string_rules",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_fails_when_undefined",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_arbitrary_equality_on_non_version_key_is_undefined",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestOperatorEvaluation.test_allows_prerelease",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid_trailing_line_break",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_invalid_malformed_quoted_string",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_str_repr_eq_hash",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_different_markers_different_hashes",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_compare_markers_to_other_objects",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_assumes_empty_extra",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_with_extra_none",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_environment_with_no_extras",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluates",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_pep345_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_pep345_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_parses_setuptools_legacy_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_setuptools_legacy_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extra_compared_to_variable_not_normalized",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_nested_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_membership_value_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_membership_value_str_normalization_negated",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_python_full_version_untagged_user_provided",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_python_full_version_untagged",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_evaluate_does_not_mutate_cached_environment",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extras_and_dependency_groups",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_extras_and_dependency_groups_disallowed",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_missing_environment_key_raises_undefined_environment_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_set_valued_marker_on_lhs_raises_undefined_comparison",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.TestMarker.test_version_like_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_and_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_and_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_or_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_or_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_operator_rejects_non_marker",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_inplace_operators_fallback",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_right_hand_ops_and_typeerror",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_chaining_associativity_and_str",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_str_preserves_nested_group_precedence",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_hash_eq_for_combined_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_evaluation_of_combined_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_pickle_marker_roundtrip",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_pickle_marker_old_format_loads",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "qualname": "tests.test_markers.test_pickle_marker_26_0_format_loads",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ]
+  },
+  "tests": {
+    "src.packaging.markers.InvalidMarker": [
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_prefers_pep440",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_new_string_rules",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_fails_when_undefined",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_arbitrary_equality_on_non_version_key_is_undefined",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_allows_prerelease",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_valid",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid_trailing_line_break",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid_malformed_quoted_string",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.markers.Marker.__init__"
+      }
+    ],
+    "src.packaging.requirements.InvalidRequirement": [
+      {
+        "test": "tests.test_metadata.TestMetadata.test_pep808_dynamic_with_static_values",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.test_basic_valid_requirement_parsing",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.test_normalized_requirements",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.test_requirement_marker_with_embedded_double_quote_round_trips",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_valid_marker",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_file_url",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_error_when_suffixed_with_line_break",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_error_when_url_embeds_line_break",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      },
+      {
+        "test": "tests.test_requirements.TestRequirementParsing.test_empty_extras",
+        "tag": "EXACT",
+        "depth": 2,
+        "via": "src.packaging.requirements.Requirement.__init__"
+      }
+    ],
+    "src.packaging.metadata.Metadata.from_email": [
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_empty_import_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_validate_returns_valid_metadata",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_unparsed",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_validate",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_description_content_type_lowercase_charset",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_unparsed_valid_field_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_empty_metadata_uses_from_email_error_message",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_collects_unparsed_field_with_valid_raw_metadata",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_collects_unparsed_and_invalid_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_collects_required_fields_after_unparsed_known_header",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_collects_unknown_and_invalid_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_keeps_non_metadata_validation_errors",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_deduplicates_unparsed_required_fields",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_metadata.TestMetadata.test_from_email_wraps_description_content_type_parse_errors",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ],
+    "src.packaging.pylock.Pylock.from_dict": [
+      {
+        "test": "tests.test_pylock.test_toml_roundtrip",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_unsupported_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_unexpected_type",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_bool_rejected_for_int",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_missing_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_missing_created_by",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_missing_packages",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_packages_without_dist",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_packages_with_dist_and_archive",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_packages_with_archive_directory_and_vcs",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_basic_package",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_vcs_package",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_archive",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_mixed_path_separators",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_wheel_filename",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_inconsistent_wheel_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_inconsistent_wheel_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_sdist_filename",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_inconsistent_sdist_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_inconsistent_sdist_version",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_wheel",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_environments",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_invalid_environments_type",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_extras_and_groups",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_tool",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_package_not_a_table",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_extras_name_validation",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_validate_attestation_identity_missing_kind",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_validate_attestation_identity_invalid_kind",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock_select.test_smoke_test",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ],
+    "src.packaging.markers.Marker.__init__": [
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_prefers_pep440",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_new_string_rules",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_fails_when_undefined",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_arbitrary_equality_on_non_version_key_is_undefined",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestOperatorEvaluation.test_allows_prerelease",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid_trailing_line_break",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_trailing_horizontal_whitespace",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_invalid_malformed_quoted_string",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_str_repr_eq_hash",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_different_markers_different_hashes",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_compare_markers_to_other_objects",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_environment_assumes_empty_extra",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_environment_with_extra_none",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_environment_with_no_extras",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_evaluates",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_pep345_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_evaluate_pep345_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_parses_setuptools_legacy_valid",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_evaluate_setuptools_legacy_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_extra_compared_to_variable_not_normalized",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_nested_extra_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_membership_value_str_normalization",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_membership_value_str_normalization_negated",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_python_full_version_untagged_user_provided",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_python_full_version_untagged",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_evaluate_does_not_mutate_cached_environment",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_extras_and_dependency_groups",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_extras_and_dependency_groups_disallowed",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_missing_environment_key_raises_undefined_environment_name",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_set_valued_marker_on_lhs_raises_undefined_comparison",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.TestMarker.test_version_like_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_and_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_and_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_or_operator_evaluates_true",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_or_operator_str_equality",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_operator_rejects_non_marker",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_inplace_operators_fallback",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_right_hand_ops_and_typeerror",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_chaining_associativity_and_str",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_str_preserves_nested_group_precedence",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_hash_eq_for_combined_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_evaluation_of_combined_markers",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_pickle_marker_roundtrip",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_pickle_marker_old_format_loads",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_pickle_marker_26_0_format_loads",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_markers.test_pickle_marker_25_0_format_loads",
+        "tag": "EXACT",
+        "depth": 1
+      },
+      {
+        "test": "tests.test_pylock.test_pylock_basic_package",
+        "tag": "EXACT",
+        "depth": 1
+      }
+    ]
+  },
+  "constraint_files": [
+    "CONTRIBUTING.rst"
+  ],
+  "linked_prs": [
+    {
+      "number": 1450,
+      "state": "open",
+      "title": "fix(markers): raise InvalidMarker for deeply nested markers",
+      "url": "https://github.com/pypa/packaging/pull/1450"
+    }
+  ],
+  "citations": [
+    {
+      "file": "src/packaging/markers.py",
+      "line_start": 62,
+      "line_end": 67,
+      "excerpt_hash": "f3b48a592b7d6582",
+      "url": "https://github.com/pypa/packaging/blob/ef837aad3127167671eb37b9f6bd8a94ec7ce26e/src/packaging/markers.py#L62-L67"
+    },
+    {
+      "file": "src/packaging/requirements.py",
+      "line_start": 27,
+      "line_end": 33,
+      "excerpt_hash": "939d47a0e54728a3",
+      "url": "https://github.com/pypa/packaging/blob/ef837aad3127167671eb37b9f6bd8a94ec7ce26e/src/packaging/requirements.py#L27-L33"
+    },
+    {
+      "file": "src/packaging/metadata.py",
+      "line_start": 889,
+      "line_end": 923,
+      "excerpt_hash": "3ff033ff6170f70a",
+      "url": "https://github.com/pypa/packaging/blob/ef837aad3127167671eb37b9f6bd8a94ec7ce26e/src/packaging/metadata.py#L889-L923"
+    },
+    {
+      "file": "src/packaging/pylock.py",
+      "line_start": 608,
+      "line_end": 614,
+      "excerpt_hash": "c2f75f38765e6a9a",
+      "url": "https://github.com/pypa/packaging/blob/ef837aad3127167671eb37b9f6bd8a94ec7ce26e/src/packaging/pylock.py#L608-L614"
+    },
+    {
+      "file": "src/packaging/markers.py",
+      "line_start": 401,
+      "line_end": 429,
+      "excerpt_hash": "572f8fc1bde1706a",
+      "url": "https://github.com/pypa/packaging/blob/ef837aad3127167671eb37b9f6bd8a94ec7ce26e/src/packaging/markers.py#L401-L429"
+    }
+  ],
+  "unknowns": [
+    "41% of call sites in this snapshot are statically unresolved (includes external and dynamic targets); some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
+    "1 open PR(s) reference this issue; competing work likely exists."
+  ],
+  "suggested_steps": [
+    "Read `src.packaging.markers.InvalidMarker` and its callers first (highest lexical match to the issue text).",
+    "Read CONTRIBUTING.rst for contribution rules before writing code.",
+    "Skim test candidate `tests.test_markers.TestOperatorEvaluation.test_prefers_pep440` to see expected behavior (static match, not executed).",
+    "Verify the bug reproduces at the pinned commit ef837aad3127 before changing code."
+  ],
+  "graph_stats": {
+    "repo": "pypa/packaging",
+    "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+    "symbols": 2293,
+    "calls_exact": 6102,
+    "calls_name": 657,
+    "calls_unresolved": 4747
+  }
+}

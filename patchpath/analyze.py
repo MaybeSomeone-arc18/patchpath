@@ -492,12 +492,23 @@ class _Visitor(ast.NodeVisitor):
             candidates.append(full)
             if self.src_prefix and not full.startswith(self.src_prefix):
                 candidates.append(self.src_prefix + full)
-            # 2b) package re-exports: click.echo -> src.click.utils.echo
+            # 2b) package re-exports: click.echo -> src.click.utils.echo.
+            # 'import click._termui_impl' still binds the name click to the
+            # top package, so walk the mapped path up to the package whose
+            # __init__ re-exports the attribute.
             if rest:
                 first, _, tail = rest.partition(".")
-                table = self.reexports.get(mapped) or \
-                    self.reexports.get(self.src_prefix + mapped, {})
-                target = table.get(first)
+                target = None
+                m = mapped
+                while True:
+                    table = self.reexports.get(m) or \
+                        self.reexports.get(self.src_prefix + m, {})
+                    if first in table:
+                        target = table[first]
+                        break
+                    if "." not in m:
+                        break
+                    m = m.rsplit(".", 1)[0]
                 if target:
                     re_full = f"{target}.{tail}" if tail else target
                     candidates.append(re_full)

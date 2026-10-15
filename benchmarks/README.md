@@ -21,6 +21,8 @@ Three harness runs are committed:
   identical per-case outcomes again.
 - `results_2026-10-15_run5.json` - analyzer 0.7.0, same frozen inputs:
   identical per-case outcomes again.
+- `results_2026-10-15_run6.json` - analyzer 0.7.1, same frozen inputs:
+  identical per-case outcomes again.
 
 Reproduce the sample with the database running:
 
@@ -96,3 +98,6 @@ external factories (`T = namedtuple(...)`) as EXTERNAL: UNRESOLVED
 (`match = re.match(...)`) as EXTERNAL: UNRESOLVED 541 (5%), EXTERNAL
 4,026; EXACT 6,720 after removing 7 false-positive EXACT edges where
 a Callable-annotated fixture parameter shadowed its fixture function.
+0.7.1 fixes re-export resolution through submodule imports
+(`import click._termui_impl` still binds the top package): on
+click@0b5c6b75 EXACT 4,119 -> 4,344, UNRESOLVED 550 -> 512.

@@ -444,3 +444,15 @@ def test_internal_factory_result_stays_honest():
     ], REPO)
     calls = _by_expr(out, "t.py")
     assert calls["x.go"].tag == UNRESOLVED
+
+
+def test_submodule_import_reexport_walkup():
+    out = analyze_files([
+        ("src/pkg/__init__.py", "from .core import thing\n"),
+        ("src/pkg/core.py", "def thing():\n    pass\n"),
+        ("src/pkg/sub.py", "x = 1\n"),
+        ("t.py", "import pkg.sub\ndef go():\n    pkg.thing()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["pkg.thing"].tag == EXACT
+    assert calls["pkg.thing"].target_qual == "src.pkg.core.thing"

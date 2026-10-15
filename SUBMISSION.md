@@ -17,7 +17,7 @@ SQLite holds snapshot readiness metadata, not the relationship graph.
 ## Evidence
 
 At packaging ef837aad3127167671eb37b9f6bd8a94ec7ce26e: 2,293 non-module
-symbols, 523 module/class variables, 11,620 stored CALLS edges (6,727
+symbols, 523 module/class variables, 11,620 stored CALLS edges (6,720
 EXACT / 333 NAME_ONLY / 4,026 EXTERNAL / 541 UNRESOLVED, rounded
 58/3/35/5%) and 1,214 REFS edges. Totals include derived
 constructor edges and are not unique source call counts or accuracy.
@@ -33,6 +33,9 @@ cases, text and outcomes are committed under benchmarks/; no historical
 curated score is claimed. A live generalization run on untuned repos the
 same day scored 4/4 file hits on pallets/itsdangerous and 1/4 on
 pallets/jinja (compiler-internals issues); both samples are committed.
+Measured latency for the load-bearing caller-expansion traversal is recorded in benchmarks/README.md (about
+1 ms median for depth-3 expansion over 1,250 paths on the published
+packaging graph).
 
 ## Known limits
 

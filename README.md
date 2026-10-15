@@ -165,8 +165,8 @@ text; it hits through the linked-PR bridge, which ranks files changed in
 PRs the issue links, and it is the only sample case with such a link.
 These are issue-level hit rates, not file/symbol recall or general
 accuracy. Symbol
-matching uses bare diff names plus one-hop caller/callee names and can
-collide. Issue text was observed after the fix and may have been edited.
+matching uses bare diff names (method-held names require a qualified
+Class.name match) plus one-hop caller/callee names. Issue text was observed after the fix and may have been edited.
 See the benchmark notes before comparing systems. Live discovery without
 `--cases` changes as GitHub changes; it is not the frozen sample.
 

@@ -54,6 +54,7 @@ class Result:
     file_hit: bool = False
     symbol_hit: bool = False
     test_file_hit: bool = False
+    fixed_qualified_symbols: list[str] = field(default_factory=list)
     unresolved_pct: int = 0
     pack_seconds: float = 0.0
     error: str | None = None
@@ -147,11 +148,38 @@ def run_case(case: Case, issue_client: IssueClient) -> Result:
         res.test_file_hit = bool(case.fixed_test_files) and \
             any(f in res.cand_files for f in case.fixed_test_files)
         cand_names = {q.rsplit(".", 1)[-1] for q in res.cand_symbols}
+        cand_quals = set(res.cand_symbols)
         # candidates' 1-hop neighbors count as "reachable" evidence
         for q in res.cand_symbols:
             for nb in tools.neighbors(q, "callers", hops=1) + tools.neighbors(q, "callees", hops=1):
                 cand_names.add(nb["qualname"].rsplit(".", 1)[-1])
-        res.symbol_hit = any(s in cand_names for s in case.fixed_symbols)
+                cand_quals.add(nb["qualname"])
+        # class-qualified credit: qualify the bare oracle names through the
+        # parent snapshot itself (which class holds '__init__' in the fixed
+        # file). A name the fixed file holds as a method counts only when
+        # the qualified Class.name form is in reach - bare '__init__' can
+        # no longer be credited to the wrong class. Names the fixed file
+        # holds only at module level keep bare matching.
+        fixed_quals: list[str] = []
+        method_carried: dict[str, list[str]] = {}
+        if case.fixed_files and case.fixed_symbols:
+            rows = tools._rows(
+                "UNWIND $names AS n "
+                "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
+                "WHERE f.path IN $files AND s.name = n "
+                "RETURN s.qualname, s.kind",
+                {"names": case.fixed_symbols, "files": case.fixed_files})
+            fixed_quals = sorted({r[0] for r in rows})
+            for q, kind in rows:
+                if kind == "method":
+                    method_carried.setdefault(q.rsplit(".", 1)[-1], []).append(q)
+        res.fixed_qualified_symbols = fixed_quals
+        def _credited(name: str) -> bool:
+            carriers = method_carried.get(name)
+            if carriers:
+                return any(q in cand_quals for q in carriers)
+            return name in cand_names
+        res.symbol_hit = any(_credited(s) for s in case.fixed_symbols)
         gs = pack.graph_stats
         tot = gs["calls_exact"] + gs["calls_name"] + gs["calls_unresolved"]
         res.unresolved_pct = round(100 * gs["calls_unresolved"] / tot) if tot else 0
@@ -241,7 +269,7 @@ def main() -> int:
         "cases_without_product_python_oracle": [
             {"repo": r.case.repo, "issue": r.case.issue}
             for r in results if not r.case.fixed_files],
-        "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus one-hop neighbors, not recall.",
+        "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus parent-snapshot class-qualified names and one-hop neighbors, not recall.",
         "results": [asdict(r) for r in results],
     }
     out = DATA / "packets" / f"eval_{int(time.time())}.json"

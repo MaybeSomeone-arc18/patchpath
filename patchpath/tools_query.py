@@ -124,7 +124,12 @@ class QueryTools:
         Ranking: traceback frame > named in the issue title > defined in a file changed by a
         linked PR > full dotted name in body > matching module/class
         variable > bare name > parameter name > defined in a named file
-        > external touch point. Within a tier, candidates closer (by
+        > most-called symbols of a variable-implicated file > external
+        touch point. The surfacing tier stays weak: variable names are
+        common enough ('packages', 'default') that amplifying an
+        implicated file's central symbols above the lexical tiers
+        flooded the top five and regressed the frozen sample (measured,
+        reverted). It only fills packets the direct signals could not. Within a tier, candidates closer (by
         call edges, up to 2 hops) to a traceback-frame seed sort first.
         Never claims relevance; reports why returned. The linked-PR tier ties the full-dotted-name
         tier (a human linked the PR; its changed files are curated
@@ -148,7 +153,8 @@ class QueryTools:
                 "WHERE s.kind <> 'module' AND s.name = $fn AND "
                 "      (f.path = $p OR f.path ENDS WITH $tail OR "
                 "       f.path ENDS WITH '/' + $p) "
-                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path LIMIT 5",
+                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path "
+                "ORDER BY s.qualname LIMIT 5",
                 {"fn": func, "p": fpath, "tail": tail})
             for r in rows:
                 if not _have(r[0]):
@@ -187,7 +193,8 @@ class QueryTools:
             "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
             "WHERE s.kind <> 'module' AND "
             "      (s.qualname = id OR s.qualname ENDS WITH '.' + id OR s.name = id) "
-            "RETURN DISTINCT s.id, s.qualname, s.kind, s.name, f.path LIMIT $lim",
+            "RETURN DISTINCT s.id, s.qualname, s.kind, s.name, f.path "
+            "ORDER BY s.qualname LIMIT $lim",
             {"ids": idents, "lim": MAX_CANDIDATES})
         dotted = {i for i in idents if "." in i}
         for r in rows:
@@ -217,14 +224,44 @@ class QueryTools:
             "UNWIND $ids AS id "
             "MATCH (v:ModuleVar)-[:DEFINED_IN]->(f:File) "
             "WHERE v.name = id "
-            "RETURN DISTINCT v.id, v.qualname, v.name, f.path, v.line LIMIT $lim",
+            "RETURN DISTINCT v.id, v.qualname, v.name, f.path, v.line "
+            "ORDER BY v.qualname LIMIT $lim",
             {"ids": var_ids, "lim": MAX_CANDIDATES})
+        var_files: dict[str, str] = {}
         for r in rows:
             if not _have(r[0]):
                 cands.append({"symbol_id": r[0], "qualname": r[1], "kind": "variable",
                               "file": r[3], "line_start": r[4], "line_end": r[4],
                               "reason": f"module/class variable '{r[2]}' appears in issue text",
                               "_rank": 2})
+            var_files.setdefault(r[3], r[2])
+
+        # a named variable implicates its file but surfaces none of the
+        # file's functions; add the file's most-called symbols (caller
+        # in-degree, top 3 per file, deterministic) as a weak tier above
+        # only external touch points
+        if var_files:
+            rows = self._rows(
+                "UNWIND $fs AS fp "
+                "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
+                "WHERE f.path = fp AND s.kind <> 'module' "
+                "OPTIONAL MATCH (caller:Symbol)-[:CALLS]->(s) "
+                "WITH fp, s, count(DISTINCT caller) AS deg "
+                "ORDER BY deg DESC, s.qualname "
+                "WITH fp, collect({id: s.id, q: s.qualname, k: s.kind, "
+                "deg: deg})[0..3] AS top "
+                "UNWIND top AS t "
+                "RETURN t.id, t.q, t.k, fp, t.deg "
+                "ORDER BY fp, t.deg DESC, t.q",
+                {"fs": sorted(var_files)})
+            for r in rows:
+                if not _have(r[0]):
+                    cands.append({"symbol_id": r[0], "qualname": r[1],
+                                  "kind": r[2], "file": r[3],
+                                  "reason": f"among the most-called symbols in '{r[3]}' "
+                                            f"(implicated by variable "
+                                            f"'{var_files[r[3]]}'), {r[4]} callers",
+                                  "_rank": 6})
 
         # external references: code that touches a named third-party/stdlib
         # name (e.g. 'hashlib.sha1' in a FIPS issue) - dependency touch points
@@ -234,7 +271,8 @@ class QueryTools:
                 "UNWIND $ids AS id "
                 "MATCH (e:External)<-[r]-(s:Symbol)-[:DEFINED_IN]->(f:File) "
                 "WHERE (e.expr = id OR e.expr ENDS WITH '.' + id) "
-                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path, type(r) LIMIT $lim",
+                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path, type(r) "
+                "ORDER BY s.qualname LIMIT $lim",
                 {"ids": ext_ids, "lim": MAX_CANDIDATES})
             for r in rows:
                 if not _have(r[0]):
@@ -252,7 +290,8 @@ class QueryTools:
                 "UNWIND $ids AS id "
                 "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
                 "WHERE s.kind <> 'module' AND id IN s.params "
-                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path LIMIT $lim",
+                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path "
+                "ORDER BY s.qualname LIMIT $lim",
                 {"ids": param_ids, "lim": MAX_CANDIDATES})
             for r in rows:
                 if not _have(r[0]):
@@ -269,7 +308,8 @@ class QueryTools:
                 "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
                 "WHERE s.kind <> 'module' AND "
                 "      (f.path = p OR f.path ENDS WITH '/' + p) "
-                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path LIMIT 10",
+                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path "
+                "ORDER BY s.qualname LIMIT 10",
                 {"ps": paths})
             for r in rows:
                 if not _have(r[0]):

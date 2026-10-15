@@ -29,8 +29,9 @@ have no product-Python file in the harness oracle and count as misses in
 the headline; all three surface the fixed test file under the secondary
 test-file oracle (3/3). The only issue whose text names no code
 (requests #6711) hits through the linked-PR bridge over the fixing PR
-its text links. The symbol diagnostic uses bare names and one-hop
-neighbors, not recall. Issue text was observed after the fixes. Full
+its text links. The symbol diagnostic uses bare names (method-held
+names require a qualified Class.name match) and one-hop neighbors,
+not recall. Issue text was observed after the fixes. Full
 cases, text and outcomes are committed under benchmarks/; no historical
 curated score is claimed. A live generalization run on untuned repos the
 same day scored 4/4 file hits on pallets/itsdangerous and 1/4 on

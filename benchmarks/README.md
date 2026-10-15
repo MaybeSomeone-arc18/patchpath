@@ -41,6 +41,18 @@ Three harness runs are committed:
   (`make_str` replaces `_posixify` in the fifth slot; neither is in
   the case oracle, so the swap is neutral). Cases without traceback
   frames are unaffected by construction.
+- `results_2026-10-15_run10.json` - deterministic candidate queries
+  (ORDER BY on every capped Cypher return; packet composition had
+  varied run to run), a stricter symbol diagnostic (a name the fixed
+  file holds as a method counts only as a qualified Class.name match;
+  all six existing credits hold under the stricter rule), and a weak
+  tier surfacing a variable-implicated file's most-called symbols.
+  Same frozen inputs: identical per-case statuses (9/12 file, 6/12
+  file+symbol, 3/3 test-oracle, zero errors), and two consecutive
+  full runs now produce byte-identical packets. A stronger placement
+  of the surfacing tier (level with the variable tier) was measured
+  and reverted: common variable names amplified the wrong files and
+  regressed the sample to 8/12 file and 5/12 file+symbol.
 
 Reproduce the sample with the database running:
 

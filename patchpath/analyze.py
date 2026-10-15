@@ -155,9 +155,10 @@ PYTEST_FIXTURES = {
 
 
 def _annot_exprs(node) -> list[tuple[str, str]]:
-    """(param_name, annotation dotted-expr) for simple Name/Attribute/str
-    annotations. Subscripts (Optional[X], list[X]) are skipped: the member
-    class cannot be bound safely."""
+    """(param_name, annotation dotted-expr) for Name/Attribute/str
+    annotations. Subscripts unwrap to their base (Callable[[...]] ->
+    Callable), which can only bind externally - imported generics never
+    resolve to an in-snapshot class through this path."""
     out = []
     a = node.args
     args = list(getattr(a, "posonlyargs", [])) + list(a.args) + list(a.kwonlyargs)
@@ -318,6 +319,14 @@ class _Visitor(ast.NodeVisitor):
                                self.known, self.src_prefix)
             if tq and tq in self.class_qualnames:
                 self.var_types[pname] = tq
+                continue
+            # annotation binds outside the snapshot (draw: st.DrawFn):
+            # calls through the parameter are external bindings
+            aroot = aexpr.split(".")[0]
+            amapped = self.import_map.get(aroot)
+            if amapped and not is_internal_module(amapped, self.modules,
+                                                  self.src_prefix):
+                self.var_types[pname] = "builtins._annot"
         for p in self.func_params:
             if p in self.fixture_types and p not in self.var_types:
                 self.var_types[p] = self.fixture_types[p]
@@ -385,10 +394,21 @@ class _Visitor(ast.NodeVisitor):
                 tq = target if target in self.known else None
         if tq and tq in self.class_qualnames:
             self.var_types[name] = tq
+        elif tq:
+            pass  # known internal symbol but not a class: no static binding
         elif expr.split(".")[0] in BUILTINS:
             # f = open(...) / with open() as f: builtin call result, so
             # f.method() is an external (builtin-type) binding
             self.var_types[name] = "builtins." + expr.split(".")[0]
+        else:
+            # match = re.match(...), resp = requests.get(...): the factory
+            # binds outside the snapshot, so the result's methods are
+            # external bindings too
+            eroot = expr.split(".")[0]
+            emapped = self.import_map.get(eroot)
+            if emapped and not is_internal_module(emapped, self.modules,
+                                                  self.src_prefix):
+                self.var_types[name] = "builtins." + eroot
 
     # --- calls --------------------------------------------------------------
     def visit_Call(self, node: ast.Call) -> None:
@@ -444,10 +464,12 @@ class _Visitor(ast.NodeVisitor):
                 return Call(caller, expr, hits[0], NAME_ONLY, line)
             return Call(caller, expr, None, UNRESOLVED, line)
         # 0b) local variable bound to a known constructor: x.method()
-        if root in self.var_types and "." in expr:
+        if root in self.var_types:
             cls = self.var_types[root]
             if cls.startswith("builtins."):
                 return Call(caller, expr, None, EXTERNAL, line)
+        if root in self.var_types and "." in expr:
+            cls = self.var_types[root]
             rest = expr[len(root) + 1:]
             if f"{cls}.{rest}" in self.known:
                 return Call(caller, expr, f"{cls}.{rest}", EXACT, line)

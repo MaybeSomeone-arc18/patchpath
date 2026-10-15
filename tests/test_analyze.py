@@ -419,3 +419,28 @@ def test_module_var_internal_factory_stays_honest():
     ], REPO)
     calls = _by_expr(out, "m.py")
     assert calls["X"].tag == UNRESOLVED
+
+
+def test_external_annotation_param_is_external():
+    out = analyze_files([
+        ("t.py", "import hypothesis.strategies as st\ndef f(draw: st.DrawFn):\n    draw(st.integers())\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["draw"].tag == EXTERNAL
+
+
+def test_external_call_result_local_is_external():
+    out = analyze_files([
+        ("t.py", "import re\ndef f():\n    match = re.match(\"a\", \"a\")\n    match.group(0)\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["match.group"].tag == EXTERNAL
+
+
+def test_internal_factory_result_stays_honest():
+    out = analyze_files([
+        ("lib.py", "def make():\n    pass\n"),
+        ("t.py", "from lib import make\ndef f():\n    x = make()\n    x.go()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["x.go"].tag == UNRESOLVED

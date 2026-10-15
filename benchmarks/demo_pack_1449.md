@@ -70,7 +70,7 @@ Competing-PR search: verified (open PR bodies only, at most 10 results; not proo
 - #1450 fix(markers): raise InvalidMarker for deeply nested markers (open) https://github.com/pypa/packaging/pull/1450
 
 ## Unknowns and limits
-- 7% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 32% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.
+- 5% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 35% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.
 - 1 open PR(s) reference this issue; competing work likely exists.
 
 ## Suggested next investigation

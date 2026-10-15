@@ -19,6 +19,8 @@ Three harness runs are committed:
   not change this sample's retrieval score.
 - `results_2026-10-15_run4.json` - analyzer 0.6.0, same frozen inputs:
   identical per-case outcomes again.
+- `results_2026-10-15_run5.json` - analyzer 0.7.0, same frozen inputs:
+  identical per-case outcomes again.
 
 Reproduce the sample with the database running:
 
@@ -68,9 +70,9 @@ limit blocked the fix-commit fetch; that artifact is not included.
 ## Snapshot demonstration
 
 pypa/packaging at `ef837aad3127167671eb37b9f6bd8a94ec7ce26e` (analyzer
-0.6.0): 2,293 non-module symbols, 523 module/class variables, 11,620
-stored CALLS edges (6,727 EXACT / 348 NAME_ONLY / 3,735 EXTERNAL /
-810 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
+0.7.0): 2,293 non-module symbols, 523 module/class variables, 11,620
+stored CALLS edges (6,720 EXACT / 333 NAME_ONLY / 4,026 EXTERNAL /
+541 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
 edges count in those totals; these are edges, not distinct source call
 sites. 9,604 AST call records were extracted. Some chained/dynamic call
 forms are omitted entirely.
@@ -89,4 +91,8 @@ capfd, tmp_path, ...) as EXTERNAL: EXACT 6,727, NAME_ONLY 350,
 UNRESOLVED 899 (8%). 0.6.0 classifies builtin-typed locals
 (`bits = []`, `f = open(...)`) and module-level variables created by
 external factories (`T = namedtuple(...)`) as EXTERNAL: UNRESOLVED
-810 (7%), EXTERNAL 3,735.
+810 (7%), EXTERNAL 3,735. 0.7.0 binds externally-annotated parameters
+(`draw: st.DrawFn`) and locals assigned from external factories
+(`match = re.match(...)`) as EXTERNAL: UNRESOLVED 541 (5%), EXTERNAL
+4,026; EXACT 6,720 after removing 7 false-positive EXACT edges where
+a Callable-annotated fixture parameter shadowed its fixture function.

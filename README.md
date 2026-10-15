@@ -139,7 +139,9 @@ python -m patchpath.mcp_server --repo pypa/packaging
 Seven read-only tools over an ingested snapshot: `snapshot_status`,
 `find_candidates`, `inspect_symbol`, `neighbors`, `nearby_tests`,
 `external_usage`, `constraint_files`. The stdio server cannot ingest or mutate graph data;
-it connects to the local graph server. Bind a repo or explicit snapshot
+it connects to the local graph server. `find_candidates` resolves
+same-repo PR links in the text to the PRs' changed files (best-effort
+GitHub fetch, disk-cached), matching the CLI ranking. Bind a repo or explicit snapshot
 when several repos have been ingested.
 
 ## Measured results

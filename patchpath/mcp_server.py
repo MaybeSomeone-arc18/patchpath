@@ -13,6 +13,8 @@ import json
 
 from mcp.server.fastmcp import FastMCP
 
+from .cli import DATA
+from .issues import IssueClient, referenced_pr_numbers
 from .registry import Registry
 from .tools_query import QueryTools
 
@@ -40,8 +42,21 @@ def snapshot_status() -> str:
 def find_candidates(issue_text: str, title: str = "") -> str:
     """Ranked candidate symbols/files for issue text (lexical match -
     always review before trusting). Pass the issue title in `title` -
-    title matches rank highest."""
-    return _dump(_qt().find_candidates(issue_text, title=title))
+    title matches rank highest. Same-repo pull-request URLs in the text
+    add the PRs' changed files as a candidate tier (best-effort GitHub
+    fetch, disk-cached; failure leaves lexical-only results)."""
+    files: list[str] = []
+    repo = _qt().stats().get("repo", "")
+    nums = referenced_pr_numbers(repo, f"{title}\n{issue_text}") if repo else []
+    if nums:
+        client = IssueClient(DATA / "issue_cache")
+        for n in nums:
+            try:
+                files.extend(client.fetch_pr_files(repo, n))
+            except Exception:
+                pass  # best-effort; lexical-only on any failure
+    return _dump(_qt().find_candidates(issue_text, title=title,
+                                       linked_pr_files=files))
 
 
 @mcp.tool()

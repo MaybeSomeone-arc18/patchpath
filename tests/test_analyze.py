@@ -331,3 +331,48 @@ def test_fixture_name_shadowed_by_local_ctor():
     # local assignment shadows the fixture binding
     assert calls["x.go"].tag == EXACT
     assert calls["x.go"].target_qual == "lib.B.go"
+
+
+def test_param_annotation_binds_class():
+    out = analyze_files([
+        ("ctx.py", "class Context:\n    def invoke(self):\n        pass\n"),
+        ("t.py", "from ctx import Context\ndef go(ctx: Context):\n    ctx.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["ctx.invoke"].tag == EXACT
+    assert calls["ctx.invoke"].target_qual == "ctx.Context.invoke"
+
+
+def test_param_annotation_string_form():
+    out = analyze_files([
+        ("ctx.py", "class Context:\n    def invoke(self):\n        pass\n"),
+        ("t.py", "from ctx import Context\ndef go(ctx: \"Context\"):\n    ctx.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["ctx.invoke"].tag == EXACT
+
+
+def test_subscript_annotation_not_bound():
+    out = analyze_files([
+        ("ctx.py", "class Context:\n    def invoke(self):\n        pass\n"),
+        ("t.py", "from ctx import Context\ndef go(ctx: list[Context]):\n    ctx.invoke()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["ctx.invoke"].tag != EXACT
+
+
+def test_pytest_builtin_fixture_is_external():
+    out = analyze_files([
+        ("tests/test_x.py", "def test_a(monkeypatch, capfd):\n    monkeypatch.setattr()\n    capfd.readouterr()\n"),
+    ], REPO)
+    calls = _by_expr(out, "tests/test_x.py")
+    assert calls["monkeypatch.setattr"].tag == EXTERNAL
+    assert calls["capfd.readouterr"].tag == EXTERNAL
+
+
+def test_fixture_name_outside_params_not_external():
+    out = analyze_files([
+        ("m.py", "monkeypatch = object()\ndef go():\n    monkeypatch.setattr()\n"),
+    ], REPO)
+    calls = _by_expr(out, "m.py")
+    assert calls["monkeypatch.setattr"].tag != EXTERNAL

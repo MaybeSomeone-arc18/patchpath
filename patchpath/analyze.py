@@ -145,6 +145,38 @@ def _func_params(node) -> list[str]:
     return [n for n in names if n not in ("self", "cls")]
 
 
+# pytest builtin fixtures injected as parameters: external bindings, never
+# resolvable from the snapshot's own imports
+PYTEST_FIXTURES = {
+    "monkeypatch", "capfd", "capsys", "caplog", "capsysbinary", "capfdbinary",
+    "tmp_path", "tmpdir", "tmp_path_factory", "tmpdir_factory", "request",
+    "pytestconfig", "recwarn", "doctest_namespace", "cache", "testdir",
+}
+
+
+def _annot_exprs(node) -> list[tuple[str, str]]:
+    """(param_name, annotation dotted-expr) for simple Name/Attribute/str
+    annotations. Subscripts (Optional[X], list[X]) are skipped: the member
+    class cannot be bound safely."""
+    out = []
+    a = node.args
+    args = list(getattr(a, "posonlyargs", [])) + list(a.args) + list(a.kwonlyargs)
+    if a.vararg:
+        args.append(a.vararg)
+    if a.kwarg:
+        args.append(a.kwarg)
+    for arg in args:
+        an = arg.annotation
+        if an is None:
+            continue
+        expr = _expr_str(an)
+        if expr is None and isinstance(an, ast.Constant) and isinstance(an.value, str):
+            expr = an.value if an.value.replace(".", "").replace("_", "").isalnum() else None
+        if expr:
+            out.append((arg.arg, expr))
+    return out
+
+
 def _resolve_expr(module: str, expr: str, import_map: dict[str, str],
                   known: set[str], src_prefix: str) -> str | None:
     """Resolve a dotted expression to a known qualname, or None."""
@@ -185,6 +217,7 @@ class _Visitor(ast.NodeVisitor):
         self.class_qualnames = class_qualnames or set()
         self.fixture_types = fixture_types or {}
         self.var_types: dict[str, str] = {}
+        self.func_params: set[str] = set()
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
         self.scope_kind: list[str] = []  # parallel: "class" | "function"
@@ -272,16 +305,27 @@ class _Visitor(ast.NodeVisitor):
         for d in list(node.args.defaults) + [x for x in node.args.kw_defaults if x]:
             self._ref(d, node.lineno, referrer=func_qual)
         # local constructor bindings do not leak across function scopes;
-        # fixture-named parameters bind to the fixture's returned class
+        # fixture-named parameters bind to the fixture's returned class;
+        # annotated parameters bind to the annotation's class (EXACT-only)
         outer_types = self.var_types
-        self.var_types = {p: self.fixture_types[p] for p in _func_params(node)
-                          if p in self.fixture_types}
+        outer_params = self.func_params
+        self.func_params = set(_func_params(node))
+        self.var_types = {}
+        for pname, aexpr in _annot_exprs(node):
+            tq = _resolve_expr(self.module, aexpr, self.import_map,
+                               self.known, self.src_prefix)
+            if tq and tq in self.class_qualnames:
+                self.var_types[pname] = tq
+        for p in self.func_params:
+            if p in self.fixture_types and p not in self.var_types:
+                self.var_types[p] = self.fixture_types[p]
         self.scope.append(node.name)
         self.scope_kind.append("function")
         self.generic_visit(node)
         self.scope.pop()
         self.scope_kind.pop()
         self.var_types = outer_types
+        self.func_params = outer_params
 
     def visit_Assign(self, node: ast.Assign) -> None:
         if self.scope_kind and self.scope_kind[-1] == "function":
@@ -419,6 +463,8 @@ class _Visitor(ast.NodeVisitor):
         # 3) external binding: builtin or imported third-party/stdlib root.
         # Not a gap in the snapshot; classified separately from UNRESOLVED.
         if root in BUILTINS:
+            return Call(caller, expr, None, EXTERNAL, line)
+        if root in PYTEST_FIXTURES and root in self.func_params:
             return Call(caller, expr, None, EXTERNAL, line)
         if mapped and not is_internal_module(mapped, self.modules, self.src_prefix):
             return Call(caller, expr, None, EXTERNAL, line)

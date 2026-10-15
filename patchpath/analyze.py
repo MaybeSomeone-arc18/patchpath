@@ -5,6 +5,14 @@ tagged EXACT (resolved to a definition in this snapshot), NAME_ONLY (same
 unqualified name exists; plausible, not proven) or UNRESOLVED. Dynamic
 dispatch, decorators, monkey-patching and import side effects defeat static
 analysis; misses stay visible as UNRESOLVED, never invented.
+
+Resolution coverage:
+- direct local/module definitions and import-map bindings (EXACT)
+- self./cls. attributes on the enclosing class and its statically
+  resolvable ancestors (EXACT); unresolved inheritance stays honest
+- star imports from internal modules, bounded by __all__ when defined
+- module- and class-level assignments are recorded as variables for
+  candidate search; they are not symbols and do not affect symbol counts
 """
 from __future__ import annotations
 
@@ -12,7 +20,18 @@ import ast
 import hashlib
 from dataclasses import dataclass, field
 
-EXACT, NAME_ONLY, UNRESOLVED = "EXACT", "NAME_ONLY", "UNRESOLVED"
+EXACT, NAME_ONLY, UNRESOLVED, EXTERNAL = "EXACT", "NAME_ONLY", "UNRESOLVED", "EXTERNAL"
+
+import builtins as _builtins_mod
+BUILTINS = set(dir(_builtins_mod))
+
+
+def is_internal_module(mapped: str, modules: set[str], src_prefix: str) -> bool:
+    """Does an imported dotted name resolve inside this snapshot?"""
+    return (mapped in modules
+            or any(m.startswith(mapped + ".") for m in modules)
+            or (src_prefix and ((src_prefix + mapped) in modules or any(
+                m.startswith(src_prefix + mapped + ".") for m in modules))))
 
 
 def symbol_id(repo_sha: str, path: str, qualname: str) -> str:
@@ -35,10 +54,21 @@ class Symbol:
     line_start: int
     line_end: int
     is_test: bool = False
+    params: list[str] = field(default_factory=list)   # functions/methods
+    bases: list[str] = field(default_factory=list)    # classes, as written
 
     @property
     def name(self) -> str:
         return self.qualname.rsplit(".", 1)[-1]
+
+
+@dataclass
+class ModuleVar:
+    """Module- or class-level assignment target (constants, flags, aliases)."""
+    qualname: str       # module.NAME or module.Class.NAME
+    name: str
+    file: str
+    line: int
 
 
 @dataclass
@@ -47,6 +77,18 @@ class Call:
     target_expr: str     # as written, e.g. "os.path.join" or "helper"
     target_qual: str | None   # resolved internal qualname if EXACT
     tag: str             # EXACT | NAME_ONLY | UNRESOLVED
+    line: int
+
+
+@dataclass
+class Ref:
+    """Non-call reference to a resolved name: decorator, parameter default,
+    or module/class-level assignment value (e.g. digest_method=hashlib.sha1).
+    Only resolved targets are recorded; unresolved references are omitted."""
+    referrer: str        # qualname of enclosing symbol (module qual at top level)
+    expr: str            # as written
+    target_qual: str | None  # internal qualname if resolved
+    tag: str             # EXACT | EXTERNAL
     line: int
 
 
@@ -64,6 +106,8 @@ class FileAnalysis:
     symbols: list[Symbol] = field(default_factory=list)
     calls: list[Call] = field(default_factory=list)
     imports: list[ImportEdge] = field(default_factory=list)
+    refs: list[Ref] = field(default_factory=list)
+    module_vars: list[ModuleVar] = field(default_factory=list)
     parse_error: str | None = None
 
 
@@ -72,18 +116,73 @@ def is_test_file(path: str) -> bool:
     return base.startswith("test_") or base.endswith("_test.py") or "/tests/" in path or "/test/" in path
 
 
+def _expr_str(node) -> str | None:
+    """Dotted string for Name/Attribute chains (also through Subscript)."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parts = []
+        cur = node
+        while isinstance(cur, ast.Attribute):
+            parts.append(cur.attr)
+            cur = cur.value
+        if isinstance(cur, ast.Name):
+            parts.append(cur.id)
+            return ".".join(reversed(parts))
+    if isinstance(node, ast.Subscript):
+        return _expr_str(node.value)
+    return None
+
+
+def _func_params(node) -> list[str]:
+    a = node.args
+    names = [x.arg for x in list(getattr(a, "posonlyargs", [])) + list(a.args)
+             + list(a.kwonlyargs)]
+    if a.vararg:
+        names.append(a.vararg.arg)
+    if a.kwarg:
+        names.append(a.kwarg.arg)
+    return [n for n in names if n not in ("self", "cls")]
+
+
+def _resolve_expr(module: str, expr: str, import_map: dict[str, str],
+                  known: set[str], src_prefix: str) -> str | None:
+    """Resolve a dotted expression to a known qualname, or None."""
+    candidates = []
+    if "." not in expr:
+        candidates.append(f"{module}.{expr}")
+    root = expr.split(".")[0]
+    mapped = import_map.get(root)
+    if mapped:
+        rest = expr[len(root):].lstrip(".")
+        full = f"{mapped}.{rest}" if rest else mapped
+        candidates.append(full)
+        if src_prefix and not full.startswith(src_prefix):
+            candidates.append(src_prefix + full)
+    for cand in candidates:
+        if cand in known:
+            return cand
+    return None
+
+
 class _Visitor(ast.NodeVisitor):
     def __init__(self, path: str, known_qualnames: set[str], by_name: dict[str, list[str]],
-                 src_prefix: str = ""):
+                 src_prefix: str, class_bases: dict[str, list[str]],
+                 class_module: dict[str, str], import_maps: dict[str, dict[str, str]],
+                 modules: set[str]):
         self.path = path
         self.module = module_name(path)
         self.known = known_qualnames
         self.by_name = by_name
         self.src_prefix = src_prefix   # "src." when the repo uses src/ layout
+        self.class_bases = class_bases
+        self.class_module = class_module
+        self.import_maps = import_maps
+        self.modules = modules
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
         self.scope_kind: list[str] = []  # parallel: "class" | "function"
-        self.import_map: dict[str, str] = {}  # local alias -> absolute module or module.name
+        self.import_map: dict[str, str] = import_maps.get(self.module, {})
         self.test_file = is_test_file(path)
 
     # --- scope tracking -------------------------------------------------
@@ -104,34 +203,23 @@ class _Visitor(ast.NodeVisitor):
     def visit_AsyncFunctionDef(self, node) -> None:
         self._visit_func(node)
 
-    def _visit_func(self, node) -> None:
-        kind = "method" if self.scope else "function"
-        sym = self._add_symbol(node, kind)
-        if self.test_file and (node.name.startswith("test_") or node.name.startswith("Test")):
-            sym.is_test = True
-        self.scope.append(node.name)
-        self.scope_kind.append("function")
-        self.generic_visit(node)
-        self.scope.pop()
-        self.scope_kind.pop()
-
-    def _add_symbol(self, node, kind: str) -> Symbol:
-        sym = Symbol(
-            qualname=self._qual(node.name), kind=kind, file=self.path,
-            line_start=node.lineno, line_end=getattr(node, "end_lineno", node.lineno),
-            is_test=self.test_file and node.name.startswith(("test_", "Test")))
-        self.out.symbols.append(sym)
-        return sym
+    def _add_symbol(self, node, kind: str) -> None:
+        # symbols come from the pass-1 universe; nothing to emit here
+        return None
 
     # --- imports ----------------------------------------------------------
     def visit_Import(self, node: ast.Import) -> None:
         for a in node.names:
-            local = a.asname or a.name.split(".")[0]
-            self.import_map[local] = a.name
             self.out.imports.append(ImportEdge(self.module, a.name, False, node.lineno))
-        # internal marking fixed up later (needs full module set)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        base = self._importfrom_base(node)
+        for a in node.names:
+            if a.name == "*":
+                continue
+            self.out.imports.append(ImportEdge(self.module, base, False, node.lineno))
+
+    def _importfrom_base(self, node: ast.ImportFrom) -> str:
         base = node.module or ""
         if node.level:  # relative import: resolve against this module's package
             parts = self.module.split(".")
@@ -142,48 +230,105 @@ class _Visitor(ast.NodeVisitor):
             if node.level > 1:
                 parts = parts[:-(node.level - 1)]
             base = ".".join([*parts, base]) if base else ".".join(parts)
-        for a in node.names:
-            if a.name == "*":
-                continue
-            local = a.asname or a.name
-            full = f"{base}.{a.name}" if base else a.name
-            # alias may point at a module OR at a name inside a module
-            self.import_map[local] = full
-            self.out.imports.append(ImportEdge(self.module, base, False, node.lineno))
+        return base
+
+    # --- non-call references -------------------------------------------------
+    def _ref(self, node, lineno, referrer: str | None = None) -> None:
+        # values passed through a call in a captured context are still
+        # references: staticmethod(hashlib.sha1), partial(mod.func), ...
+        if isinstance(node, ast.Call):
+            for a in list(node.args) + [k.value for k in node.keywords]:
+                self._ref(a, lineno, referrer)
+            return
+        expr = _expr_str(node)
+        if not expr:
+            return
+        root = expr.split(".")[0]
+        if root in ("self", "cls") or root in BUILTINS:
+            return
+        if referrer is None:
+            referrer = ".".join([self.module, *self.scope]) if self.scope else self.module
+        tq = _resolve_expr(self.module, expr, self.import_map,
+                           self.known, self.src_prefix)
+        if tq:
+            self.out.refs.append(Ref(referrer, expr, tq, EXACT, lineno))
+        elif root in self.import_map and not is_internal_module(
+                self.import_map[root], self.modules, self.src_prefix):
+            self.out.refs.append(Ref(referrer, expr, None, EXTERNAL, lineno))
+
+    def _visit_func(self, node) -> None:
+        kind = "method" if self.scope else "function"
+        self._add_symbol(node, kind)
+        func_qual = self._qual(node.name)
+        for d in node.decorator_list:
+            self._ref(d if not isinstance(d, ast.Call) else d.func, node.lineno,
+                      referrer=func_qual)
+        for d in list(node.args.defaults) + [x for x in node.args.kw_defaults if x]:
+            self._ref(d, node.lineno, referrer=func_qual)
+        self.scope.append(node.name)
+        self.scope_kind.append("function")
+        self.generic_visit(node)
+        self.scope.pop()
+        self.scope_kind.pop()
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if not (self.scope_kind and self.scope_kind[-1] == "function") and node.value:
+            self._ref(node.value, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if not (self.scope_kind and self.scope_kind[-1] == "function") and node.value:
+            self._ref(node.value, node.lineno)
+        self.generic_visit(node)
 
     # --- calls --------------------------------------------------------------
     def visit_Call(self, node: ast.Call) -> None:
-        expr, root = self._expr(node.func)
+        expr, root = None, None
+        if isinstance(node.func, (ast.Name, ast.Attribute)):
+            expr = _expr_str(node.func)
+            root = expr.split(".")[0] if expr else None
         if expr:
             caller = ".".join([self.module, *self.scope]) if self.scope else self.module
             self.out.calls.append(self._resolve(caller, expr, root, node.lineno))
         self.generic_visit(node)
 
-    def _expr(self, func) -> tuple[str | None, str | None]:
-        """Return (dotted expression as written, root name)."""
-        if isinstance(func, ast.Name):
-            return func.id, func.id
-        if isinstance(func, ast.Attribute):
-            parts = []
-            cur = func
-            while isinstance(cur, ast.Attribute):
-                parts.append(cur.attr)
-                cur = cur.value
-            if isinstance(cur, ast.Name):
-                parts.append(cur.id)
-                return ".".join(reversed(parts)), cur.id
-        return None, None
+    def _lookup_in_hierarchy(self, cls_qual: str, attr: str,
+                             visited: set[str], depth: int = 0) -> str | None:
+        """attr on cls_qual or a statically resolvable ancestor (EXACT only)."""
+        if cls_qual in visited or depth > 6:
+            return None
+        visited.add(cls_qual)
+        direct = cls_qual + "." + attr
+        if direct in self.known:
+            return direct
+        for base_expr in self.class_bases.get(cls_qual, []):
+            mod = self.class_module.get(cls_qual, self.module)
+            bq = _resolve_expr(mod, base_expr, self.import_maps.get(mod, {}),
+                               self.known, self.src_prefix)
+            if not bq:
+                # unresolved base expression: unique-name fallback for the
+                # base itself (the hop is still a static binding candidate)
+                leaf = base_expr.rsplit(".", 1)[-1]
+                hits = [q for q in self.by_name.get(leaf, [])
+                        if q in self.class_bases or q.rsplit(".", 1)[-1] == leaf]
+                bq = hits[0] if len(hits) == 1 else None
+            if bq:
+                r = self._lookup_in_hierarchy(bq, attr, visited, depth + 1)
+                if r:
+                    return r
+        return None
 
     def _resolve(self, caller: str, expr: str, root: str, line: int) -> Call:
-        # 0) self.attr / cls.attr: resolve within the nearest enclosing class
+        # 0) self.attr / cls.attr: enclosing class, then resolvable ancestors
         if root in ("self", "cls") and "." in expr:
             attr = expr.split(".", 1)[1]
             for i in range(len(self.scope) - 1, -1, -1):
                 if self.scope_kind[i] == "class":
-                    qual = ".".join([self.module, *self.scope[:i + 1], attr])
-                    if qual in self.known:
-                        return Call(caller, expr, qual, EXACT, line)
-            # not found in any enclosing class: inherited or dynamic; honest
+                    cls_qual = ".".join([self.module, *self.scope[:i + 1]])
+                    hit = self._lookup_in_hierarchy(cls_qual, attr, set())
+                    if hit:
+                        return Call(caller, expr, hit, EXACT, line)
+            # not found in any enclosing class hierarchy: dynamic; honest
             leaf = expr.rsplit(".", 1)[-1]
             hits = self.by_name.get(leaf, [])
             if len(hits) == 1:
@@ -202,17 +347,134 @@ class _Visitor(ast.NodeVisitor):
             candidates.append(full)
             if self.src_prefix and not full.startswith(self.src_prefix):
                 candidates.append(self.src_prefix + full)
-            # 'from pkg import mod' then mod.func() -> pkg.mod.func
-            # 'from pkg import func' then func() -> pkg.func
         for cand in candidates:
             if cand in self.known:
                 return Call(caller, expr, cand, EXACT, line)
-        # 3) name-only fallback: unqualified final name matches exactly one symbol
+        # 3) external binding: builtin or imported third-party/stdlib root.
+        # Not a gap in the snapshot; classified separately from UNRESOLVED.
+        if root in BUILTINS:
+            return Call(caller, expr, None, EXTERNAL, line)
+        if mapped and not is_internal_module(mapped, self.modules, self.src_prefix):
+            return Call(caller, expr, None, EXTERNAL, line)
+        # 4) name-only fallback: unqualified final name matches exactly one symbol
         leaf = expr.rsplit(".", 1)[-1]
         hits = self.by_name.get(leaf, [])
         if len(hits) == 1:
             return Call(caller, expr, hits[0], NAME_ONLY, line)
         return Call(caller, expr, None, UNRESOLVED, line)
+
+
+def _const_str_list(node) -> list[str] | None:
+    """['a', 'b'] / ('a',) literal -> list of strings, else None."""
+    if isinstance(node, (ast.List, ast.Tuple)):
+        out = []
+        for el in node.elts:
+            if isinstance(el, ast.Constant) and isinstance(el.value, str):
+                out.append(el.value)
+            else:
+                return None
+        return out
+    return None
+
+
+class _Collector(ast.NodeVisitor):
+    """Pass 1 per file: symbols (with params/bases), variables, imports."""
+
+    def __init__(self, path: str):
+        self.path = path
+        self.module = module_name(path)
+        self.test_file = is_test_file(path)
+        self.symbols: list[Symbol] = []
+        self.module_vars: list[ModuleVar] = []
+        self.import_map: dict[str, str] = {}
+        self.star_bases: list[str] = []
+        self.all_list: list[str] | None = None
+        self.scope: list[str] = []
+        self.scope_kind: list[str] = []
+
+    def _qual(self, name: str) -> str:
+        return ".".join([self.module, *self.scope, name])
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        bases = [b for b in (_expr_str(x) for x in node.bases) if b]
+        self.symbols.append(Symbol(
+            self._qual(node.name), "class", self.path, node.lineno,
+            getattr(node, "end_lineno", node.lineno),
+            is_test=self.test_file and node.name.startswith(("test_", "Test")),
+            bases=bases))
+        self.scope.append(node.name)
+        self.scope_kind.append("class")
+        self.generic_visit(node)
+        self.scope.pop()
+        self.scope_kind.pop()
+
+    def visit_FunctionDef(self, node) -> None:
+        self._func(node)
+
+    def visit_AsyncFunctionDef(self, node) -> None:
+        self._func(node)
+
+    def _func(self, node) -> None:
+        kind = "method" if self.scope else "function"
+        self.symbols.append(Symbol(
+            self._qual(node.name), kind, self.path, node.lineno,
+            getattr(node, "end_lineno", node.lineno),
+            is_test=self.test_file and node.name.startswith(("test_", "Test")),
+            params=_func_params(node)))
+        self.scope.append(node.name)
+        self.scope_kind.append("function")
+        self.generic_visit(node)
+        self.scope.pop()
+        self.scope_kind.pop()
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        self._assign(node.targets, node.value, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        self._assign([node.target], node.value, node.lineno)
+        self.generic_visit(node)
+
+    def _assign(self, targets, value, lineno) -> None:
+        # module- and class-level names only; function bodies are locals
+        if self.scope_kind and self.scope_kind[-1] == "function":
+            return
+        names: list[str] = []
+        for t in targets:
+            if isinstance(t, ast.Name):
+                names.append(t.id)
+            elif isinstance(t, (ast.Tuple, ast.List)):
+                names.extend(el.id for el in t.elts if isinstance(el, ast.Name))
+        for n in names:
+            if n == "__all__":
+                vals = _const_str_list(value) if value is not None else None
+                if vals is not None:
+                    self.all_list = vals
+                continue
+            self.module_vars.append(ModuleVar(self._qual(n), n, self.path, lineno))
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for a in node.names:
+            local = a.asname or a.name.split(".")[0]
+            self.import_map[local] = a.name
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        base = node.module or ""
+        if node.level:
+            parts = self.module.split(".")
+            if not self.path.endswith("__init__.py"):
+                parts = parts[:-1]
+            if node.level > 1:
+                parts = parts[:-(node.level - 1)]
+            base = ".".join([*parts, base]) if base else ".".join(parts)
+        for a in node.names:
+            if a.name == "*":
+                if base:
+                    self.star_bases.append(base)
+                continue
+            local = a.asname or a.name
+            full = f"{base}.{a.name}" if base else a.name
+            self.import_map[local] = full
 
 
 def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnalysis]:
@@ -227,33 +489,75 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
         except SyntaxError as e:
             parsed.append((path, None, f"{e.__class__.__name__}: {e}"))
 
-    # pass 1: symbol universe
+    # pass 1: symbol universe, variables, per-module import maps
     known: set[str] = set()
     by_name: dict[str, list[str]] = {}
     modules: set[str] = set()
-    presymbols: dict[str, list[Symbol]] = {}
+    collectors: dict[str, _Collector] = {}
     for path, tree, err in parsed:
         modules.add(module_name(path))
         if tree is None:
             continue
-        syms = _collect_symbols(path, tree)
-        presymbols[path] = syms
-        for s in syms:
+        c = _Collector(path)
+        c.visit(tree)
+        collectors[path] = c
+        for s in c.symbols:
             known.add(s.qualname)
             by_name.setdefault(s.name, []).append(s.qualname)
 
-    # pass 2: full visit with resolution against the complete universe
     # src-layout: top-level packages live under "src."
     src_prefix = ""
     tops = {m.split(".")[0] for m in modules}
     if "src" in tops and any(m.startswith("src.") for m in modules):
         src_prefix = "src."
 
+    # expand star imports from internal modules (bounded by __all__)
+    for path, c in collectors.items():
+        for base in c.star_bases:
+            real = base if any(m == base or m.startswith(base + ".") for m in modules) \
+                else (src_prefix + base if src_prefix and any(
+                    m == src_prefix + base or m.startswith(src_prefix + base + ".")
+                    for m in modules) else None)
+            if not real:
+                continue  # external star import: cannot resolve statically
+            src_mod = real
+            exp = collectors  # collectors keyed by path; find module's file
+            all_list = None
+            for p2, c2 in exp.items():
+                if module_name(p2) == src_mod and c2.all_list is not None:
+                    all_list = c2.all_list
+            for q in list(known):
+                if not q.startswith(src_mod + "."):
+                    continue
+                rest = q[len(src_mod) + 1:]
+                if "." in rest:
+                    continue  # top-level names only
+                if all_list is not None and rest not in all_list:
+                    continue
+                if all_list is None and rest.startswith("_"):
+                    continue
+                c.import_map.setdefault(rest, q)
+
+    import_maps = {module_name(p): c.import_map for p, c in collectors.items()}
+    class_bases: dict[str, list[str]] = {}
+    class_module: dict[str, str] = {}
+    for p, c in collectors.items():
+        for s in c.symbols:
+            if s.kind == "class":
+                class_bases[s.qualname] = s.bases
+                class_module[s.qualname] = module_name(p)
+
+    # pass 2: full visit with resolution against the complete universe
     out: list[FileAnalysis] = []
     for path, tree, err in parsed:
-        v = _Visitor(path, known, by_name, src_prefix)
+        v = _Visitor(path, known, by_name, src_prefix, class_bases,
+                     class_module, import_maps, modules)
         if tree is not None:
             v.visit(tree)
+        c = collectors.get(path)
+        if c:
+            v.out.symbols = c.symbols
+            v.out.module_vars = c.module_vars
         for imp in v.out.imports:
             imp.internal = (
                 imp.imported in modules
@@ -264,38 +568,6 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
         v.out.parse_error = err
         out.append(v.out)
     return out
-
-
-def _collect_symbols(path: str, tree: ast.AST) -> list[Symbol]:
-    """Symbol-only walk so pass 1 needs no resolution state."""
-    syms: list[Symbol] = []
-    mod = module_name(path)
-    test_file = is_test_file(path)
-
-    class S(ast.NodeVisitor):
-        def __init__(self):
-            self.scope: list[str] = []
-
-        def _add(self, node, kind):
-            qual = ".".join([mod, *self.scope, node.name])
-            syms.append(Symbol(qual, kind, path, node.lineno,
-                               getattr(node, "end_lineno", node.lineno),
-                               is_test=test_file and node.name.startswith(("test_", "Test"))))
-            self.scope.append(node.name)
-            self.generic_visit(node)
-            self.scope.pop()
-
-        def visit_ClassDef(self, n):
-            self._add(n, "class")
-
-        def visit_FunctionDef(self, n):
-            self._add(n, "method" if self.scope else "function")
-
-        def visit_AsyncFunctionDef(self, n):
-            self._add(n, "method" if self.scope else "function")
-
-    S().visit(tree)
-    return syms
 
 
 def analyze_snapshot(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnalysis]:

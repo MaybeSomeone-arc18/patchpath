@@ -12,7 +12,7 @@ from __future__ import annotations
 from falkordb import FalkorDB
 
 from . import ANALYZER_VERSION, SCHEMA_VERSION
-from .analyze import EXACT, NAME_ONLY, UNRESOLVED, FileAnalysis, module_name, symbol_id
+from .analyze import EXACT, EXTERNAL, NAME_ONLY, UNRESOLVED, FileAnalysis, Ref, module_name, symbol_id
 from .acquire import Snapshot
 
 NODE_BATCH = 500
@@ -78,15 +78,33 @@ class GraphStore:
                     "id": symbol_id(snap.sha, s.file, s.qualname),
                     "qual": s.qualname, "name": s.name, "kind": s.kind,
                     "file": s.file, "ls": s.line_start, "le": s.line_end,
-                    "test": s.is_test})
+                    "test": s.is_test, "params": s.params, "bases": s.bases})
         for i in range(0, len(sym_rows), NODE_BATCH):
             g.query(
                 "UNWIND $rows AS row "
                 "MATCH (f:File {path: row.file}) "
                 "CREATE (n:Symbol {id: row.id, qualname: row.qual, name: row.name, "
-                "kind: row.kind, line_start: row.ls, line_end: row.le, is_test: row.test})"
+                "kind: row.kind, line_start: row.ls, line_end: row.le, is_test: row.test, "
+                "params: row.params, bases: row.bases})"
                 "-[:DEFINED_IN]->(f)",
                 {"rows": sym_rows[i:i + NODE_BATCH]})
+
+        # ModuleVar nodes: module-/class-level assignment targets. Not
+        # symbols; they make constants searchable without inflating counts.
+        var_rows = []
+        for fa in analyses:
+            for v in fa.module_vars:
+                var_rows.append({
+                    "id": symbol_id(snap.sha, v.file, "var:" + v.qualname),
+                    "qual": v.qualname, "name": v.name,
+                    "file": v.file, "line": v.line})
+        for i in range(0, len(var_rows), NODE_BATCH):
+            g.query(
+                "UNWIND $rows AS row "
+                "MATCH (f:File {path: row.file}) "
+                "CREATE (n:ModuleVar {id: row.id, qualname: row.qual, name: row.name, "
+                "line: row.line})-[:DEFINED_IN]->(f)",
+                {"rows": var_rows[i:i + NODE_BATCH]})
 
         # CALLS edges (tagged)
         call_rows = []
@@ -96,7 +114,8 @@ class GraphStore:
                 row = {"caller": caller_id, "expr": c.target_expr,
                        "tag": c.tag, "line": c.line,
                        "target": symbol_id(snap.sha, _file_of(analyses, c.target_qual), c.target_qual)
-                       if c.tag in (EXACT, NAME_ONLY) and c.target_qual else None}
+                       if c.tag in (EXACT, NAME_ONLY) and c.target_qual else None,
+                       "external": c.tag == EXTERNAL}
                 call_rows.append(row)
         for i in range(0, len(call_rows), EDGE_BATCH):
             batch = call_rows[i:i + EDGE_BATCH]
@@ -112,6 +131,13 @@ class GraphStore:
                 "MATCH (a:Symbol {id: row.caller}) "
                 "MERGE (u:Unresolved {expr: row.expr}) "
                 "CREATE (a)-[:CALLS {tag: row.tag, expr: row.expr, line: row.line}]->(u)",
+                {"rows": [r for r in batch if not r["external"]]})
+            # external: known outside-snapshot name (builtin, stdlib, third-party)
+            g.query(
+                "UNWIND [r IN $rows WHERE r.external] AS row "
+                "MATCH (a:Symbol {id: row.caller}) "
+                "MERGE (u:External {expr: row.expr}) "
+                "CREATE (a)-[:CALLS {tag: row.tag, expr: row.expr, line: row.line}]->(u)",
                 {"rows": batch})
 
         # Derived constructor edges: a call resolved to a class also calls
@@ -122,6 +148,30 @@ class GraphStore:
             "AND i.qualname = b.qualname + '.__init__' "
             "CREATE (a)-[:CALLS {tag: 'EXACT', expr: c.expr, line: c.line, "
             "derived: 'ctor'}]->(i)")
+
+        # REFS edges: resolved non-call references (decorators, defaults,
+        # module/class assignment values) to internal symbols or External nodes
+        ref_rows = []
+        for fa in analyses:
+            for r in fa.refs:
+                ref_rows.append({
+                    "referrer": symbol_id(snap.sha, fa.path, r.referrer),
+                    "expr": r.expr, "tag": r.tag, "line": r.line,
+                    "target": symbol_id(snap.sha, _file_of(analyses, r.target_qual), r.target_qual)
+                    if r.tag == EXACT and r.target_qual else None})
+        for i in range(0, len(ref_rows), EDGE_BATCH):
+            batch = ref_rows[i:i + EDGE_BATCH]
+            g.query(
+                "UNWIND [r IN $rows WHERE r.target IS NOT NULL] AS row "
+                "MATCH (a:Symbol {id: row.referrer}), (b:Symbol {id: row.target}) "
+                "CREATE (a)-[:REFS {tag: row.tag, expr: row.expr, line: row.line}]->(b)",
+                {"rows": batch})
+            g.query(
+                "UNWIND [r IN $rows WHERE r.target IS NULL] AS row "
+                "MATCH (a:Symbol {id: row.referrer}) "
+                "MERGE (u:External {expr: row.expr}) "
+                "CREATE (a)-[:REFS {tag: row.tag, expr: row.expr, line: row.line}]->(u)",
+                {"rows": batch})
 
         # IMPORTS edges (module-level, internal only become File->File)
         imp_rows = []
@@ -144,7 +194,8 @@ class GraphStore:
         """Index lookup fields with the pinned release's syntax (FalkorDB 6.x)."""
         g = self.db.select_graph(staging)
         for label, prop in [("Symbol", "qualname"), ("Symbol", "id"),
-                            ("Symbol", "name"), ("File", "path")]:
+                            ("Symbol", "name"), ("File", "path"),
+                            ("ModuleVar", "name")]:
             g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
 
     # --- validation ----------------------------------------------------------
@@ -160,12 +211,18 @@ class GraphStore:
             "calls_exact": n("MATCH ()-[c:CALLS {tag: 'EXACT'}]->() RETURN count(c)"),
             "calls_name": n("MATCH ()-[c:CALLS {tag: 'NAME_ONLY'}]->() RETURN count(c)"),
             "calls_unresolved": n("MATCH ()-[c:CALLS {tag: 'UNRESOLVED'}]->() RETURN count(c)"),
+            "calls_external": n("MATCH ()-[c:CALLS {tag: 'EXTERNAL'}]->() RETURN count(c)"),
+            "refs": n("MATCH ()-[r:REFS]->() RETURN count(r)"),
             "imports": n("MATCH ()-[i:IMPORTS]->() RETURN count(i)"),
             "parse_errors": sum(1 for a in analyses if a.parse_error),
         }
         expected_symbols = sum(len(a.symbols) for a in analyses)
         if stats["symbols"] != expected_symbols:
             raise ValueError(f"symbol count mismatch: graph {stats['symbols']} != analyzer {expected_symbols}")
+        stats["module_vars"] = n("MATCH (v:ModuleVar) RETURN count(v)")
+        expected_vars = sum(len(a.module_vars) for a in analyses)
+        if stats["module_vars"] != expected_vars:
+            raise ValueError(f"module var count mismatch: graph {stats['module_vars']} != analyzer {expected_vars}")
         if stats["files"] != len(snap.files):
             raise ValueError(f"file count mismatch: graph {stats['files']} != snapshot {len(snap.files)}")
         return stats

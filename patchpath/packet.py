@@ -128,7 +128,10 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
                 "not empty.")
             pack.callers[q] = []
             pack.tests[q] = []
-        card = tools.inspect_symbol(q)
+        if c.get("kind") == "variable":
+            card = tools.inspect_variable(q)
+        else:
+            card = tools.inspect_symbol(q)
         if card:
             pack.citations.append(validate_citation(
                 snapshot_root, stats["repo"], stats["sha"],
@@ -136,13 +139,16 @@ def build_packet(tools: QueryTools, snapshot_root: Path,
                 card.get("file_hash")))
 
     unresolved = stats["calls_unresolved"]
-    total = stats["calls_exact"] + stats["calls_name"] + unresolved
+    external = stats.get("calls_external", 0)
+    total = stats["calls_exact"] + stats["calls_name"] + unresolved + external
     if total:
         pct = round(100 * unresolved / total)
+        epct = round(100 * external / total)
         pack.unknowns.append(
             f"{pct}% of call sites in this snapshot are statically unresolved "
-            "(includes external and dynamic targets); some dynamic/chained calls "
-            "are omitted entirely. Paths are a "
+            f"(dynamic or opaque targets); another {epct}% are external "
+            "(stdlib/third-party), not part of this snapshot's graph; "
+            "some dynamic/chained calls are omitted entirely. Paths are a "
             "starting point, not a blast radius.")
     if ev.assignees:
         pack.unknowns.append(

@@ -14,6 +14,8 @@ MAX_RESULTS = 50
 
 IDENT_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\b")
 PATH_RE = re.compile(r"\b([\w./-]+\.py)\b")
+# Python traceback frames: 'File "x/y.py", line 12, in func_name'
+FRAME_RE = re.compile(r'File "([^"]+\.py)", line \d+, in ([A-Za-z_][A-Za-z0-9_]*)')
 
 # Plain-English words that appear in code too; matching them as identifiers
 # is how "local" becomes a candidate. Code-like tokens (snake_case with _,
@@ -29,6 +31,33 @@ STOPWORDS = {
     "wrong", "seems", "like", "also", "see", "example", "expected",
     "actual", "currently", "however", "because", "after", "before",
     "https", "http", "com", "github", "www", "org", "python",
+    "true", "false", "none", "yes", "maybe", "really", "actually",
+    "something", "anything", "everything", "nothing", "someone", "anyone",
+    "trying", "tried", "going", "getting", "running", "working", "looking",
+    "happens", "happened", "getting", "making", "getting", "seems",
+    "problem", "problems", "question", "questions", "thanks", "please",
+    "hello", "sorry", "sure", "think", "thought", "know", "wanted",
+    "needed", "needs", "try", "way", "ways", "thing", "things", "stuff",
+    "people", "users", "maintainers", "anymore", "instead", "rather",
+    "quite", "pretty", "still", "even", "just", "only", "also", "very",
+    "much", "many", "more", "most", "less", "least", "same", "different",
+    "another", "other", "others", "between", "without", "within", "during",
+    "while", "though", "although", "either", "neither", "both", "every",
+    "each", "any", "all", "some", "such", "own", "new", "old", "first",
+    "last", "latest", "recent", "recently", "following", "follows",
+    "above", "below", "here", "there", "where", "when", "what", "which",
+    "who", "whom", "whose", "why", "how", "then", "than", "that", "this",
+    "these", "those", "them", "they", "their", "theirs", "itself",
+    "install", "installed", "installing", "installation", "update",
+    "updated", "updating", "upgrade", "upgraded", "environment",
+    "message", "messages", "seeing", "building", "build", "built",
+    "several", "various", "certain", "specific", "particular", "given",
+    "based", "related", "similar", "different", "possible", "possibly",
+    "probably", "likely", "unlikely", "obviously", "clearly", "simply",
+    "basically", "essentially", "generally", "usually", "normally",
+    "typically", "especially", "particularly", "mostly", "mainly",
+    "exactly", "completely", "entirely", "totally", "fully", "highly",
+    "managed", "yesterday", "today", "tomorrow", "week", "month",
 }
 
 
@@ -53,6 +82,8 @@ def identifiers(text: str) -> list[str]:
         t = m.group(1)
         if len(t) < 3 or t in seen:
             continue
+        if t in ("True", "False", "None"):
+            continue
         if not _code_like(t) and t.lower() in STOPWORDS:
             continue
         # a bare lowercase dictionary word is a weak signal; keep only if
@@ -61,6 +92,21 @@ def identifiers(text: str) -> list[str]:
             continue
         seen.add(t); out.append(t)
     return out[:200]
+
+
+def frames(text: str) -> list[tuple[str, str]]:
+    """(path_tail, function) pairs from traceback lines, most recent last."""
+    out: list[tuple[str, str]] = []
+    seen = set()
+    for m in FRAME_RE.finditer(text):
+        path, func = m.group(1), m.group(2)
+        if func == "<module>":
+            continue
+        key = (path, func)
+        if key not in seen:
+            seen.add(key)
+            out.append((path, func))
+    return out[:20]
 
 
 class QueryTools:
@@ -74,36 +120,120 @@ class QueryTools:
     def find_candidates(self, issue_text: str, title: str = "") -> list[dict]:
         """Deterministic lexical candidates, expanded one graph hop.
 
-        Ranking: named in the issue title > full dotted name in body >
-        bare name > defined in a named file. Never claims relevance;
+        Ranking: traceback frame > named in the issue title > full dotted
+        name in body > matching module/class variable > bare name >
+        parameter name > defined in a named file. Never claims relevance;
         reports why returned.
         """
         title_idents = set(identifiers(title)) if title else set()
         idents = identifiers(issue_text)
+        cands: list[dict] = []
+
+        def _have(key: str) -> bool:
+            return any(c["symbol_id"] == key for c in cands)
+
+        # 0) traceback frames: strongest signal, code the reporter ran
+        for fpath, func in frames(issue_text):
+            tail = "/".join(fpath.split("/")[-2:])
+            rows = self._rows(
+                "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
+                "WHERE s.kind <> 'module' AND s.name = $fn AND "
+                "      (f.path = $p OR f.path ENDS WITH $tail OR "
+                "       f.path ENDS WITH '/' + $p) "
+                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path LIMIT 5",
+                {"fn": func, "p": fpath, "tail": tail})
+            for r in rows:
+                if not _have(r[0]):
+                    cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                                  "file": r[3],
+                                  "reason": f"traceback frame '{func}' in '{r[3]}'",
+                                  "_rank": 0})
         if not idents:
-            return []
+            cands.sort(key=lambda c: c["_rank"])
+            for c in cands:
+                c.pop("_rank", None)
+            return cands[:MAX_CANDIDATES]
+
         rows = self._rows(
             "UNWIND $ids AS id "
-            "MATCH (s:Symbol) "
+            "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
             "WHERE s.kind <> 'module' AND "
             "      (s.qualname = id OR s.qualname ENDS WITH '.' + id OR s.name = id) "
-            "RETURN DISTINCT s.id, s.qualname, s.kind, s.name LIMIT $lim",
+            "RETURN DISTINCT s.id, s.qualname, s.kind, s.name, f.path LIMIT $lim",
             {"ids": idents, "lim": MAX_CANDIDATES})
         dotted = {i for i in idents if "." in i}
-        cands = []
         for r in rows:
             in_title = r[3] in title_idents or r[1] in title_idents or \
                 any(r[1].endswith("." + t) for t in title_idents)
             exact = r[1] in dotted or any(r[1].endswith("." + d) for d in dotted)
             if in_title:
-                rank, reason = 0, f"name '{r[3]}' appears in the issue title"
+                rank, reason = 1, f"name '{r[3]}' appears in the issue title"
             elif exact:
-                rank, reason = 1, f"full dotted name '{r[1]}' in issue text"
+                rank, reason = 2, f"full dotted name '{r[1]}' in issue text"
             else:
-                rank, reason = 2, f"name '{r[3]}' appears in issue text"
-            cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
-                          "reason": reason, "_rank": rank})
-        # file-path mentions resolve to all symbols in that file (capped)
+                rank, reason = 3, f"name '{r[3]}' appears in issue text"
+            if not _have(r[0]):
+                cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                              "file": r[4], "reason": reason, "_rank": rank})
+            elif in_title or exact:
+                for c in cands:
+                    if c["symbol_id"] == r[0] and c["_rank"] > rank:
+                        c["_rank"], c["reason"] = rank, reason
+
+        # module-/class-level variables named in the issue (constants, flags);
+        # dotted mentions match on the root: '_CONSTANT.method' -> '_CONSTANT'
+        var_ids = list(idents)
+        var_ids += [i.split(".")[0] for i in idents if "." in i
+                    and not i.endswith(".py")]
+        rows = self._rows(
+            "UNWIND $ids AS id "
+            "MATCH (v:ModuleVar)-[:DEFINED_IN]->(f:File) "
+            "WHERE v.name = id "
+            "RETURN DISTINCT v.id, v.qualname, v.name, f.path, v.line LIMIT $lim",
+            {"ids": var_ids, "lim": MAX_CANDIDATES})
+        for r in rows:
+            if not _have(r[0]):
+                cands.append({"symbol_id": r[0], "qualname": r[1], "kind": "variable",
+                              "file": r[3], "line_start": r[4], "line_end": r[4],
+                              "reason": f"module/class variable '{r[2]}' appears in issue text",
+                              "_rank": 2})
+
+        # external references: code that touches a named third-party/stdlib
+        # name (e.g. 'hashlib.sha1' in a FIPS issue) - dependency touch points
+        ext_ids = [i for i in idents if not i.endswith(".py")]
+        if ext_ids:
+            rows = self._rows(
+                "UNWIND $ids AS id "
+                "MATCH (e:External)<-[r]-(s:Symbol)-[:DEFINED_IN]->(f:File) "
+                "WHERE (e.expr = id OR e.expr ENDS WITH '.' + id) "
+                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path, type(r) LIMIT $lim",
+                {"ids": ext_ids, "lim": MAX_CANDIDATES})
+            for r in rows:
+                if not _have(r[0]):
+                    # weakest signal: a touch point, not the fault site; keep
+                    # below name/parameter/file matches so it never displaces
+                    cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                                  "file": r[4],
+                                  "reason": f"{r[5]} external '{r[3]}' named in issue text",
+                                  "_rank": 6})
+
+        # parameter names: 'flag_value' style hints toward the function
+        param_ids = [i for i in idents if "_" in i and "." not in i]
+        if param_ids:
+            rows = self._rows(
+                "UNWIND $ids AS id "
+                "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
+                "WHERE s.kind <> 'module' AND id IN s.params "
+                "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path LIMIT $lim",
+                {"ids": param_ids, "lim": MAX_CANDIDATES})
+            for r in rows:
+                if not _have(r[0]):
+                    cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                                  "file": r[4],
+                                  "reason": f"parameter '{r[3]}' appears in issue text",
+                                  "_rank": 4})
+
+        # file-path mentions resolve to symbols in that file (capped)
         paths = [i for i in idents if i.endswith(".py")]
         if paths:
             rows = self._rows(
@@ -111,13 +241,14 @@ class QueryTools:
                 "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
                 "WHERE s.kind <> 'module' AND "
                 "      (f.path = p OR f.path ENDS WITH '/' + p) "
-                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path LIMIT $lim",
-                {"ps": paths, "lim": MAX_CANDIDATES})
+                "RETURN DISTINCT s.id, s.qualname, s.kind, f.path LIMIT 10",
+                {"ps": paths})
             for r in rows:
-                if not any(c["symbol_id"] == r[0] for c in cands):
+                if not _have(r[0]):
                     cands.append({"symbol_id": r[0], "qualname": r[1], "kind": r[2],
+                                  "file": r[3],
                                   "reason": f"defined in file '{r[3]}' named in issue text",
-                                  "_rank": 3})
+                                  "_rank": 5})
         cands.sort(key=lambda c: c["_rank"])
         for c in cands:
             c.pop("_rank", None)
@@ -134,6 +265,17 @@ class QueryTools:
         r = rows[0]
         return {"symbol_id": r[0], "qualname": qualname, "kind": r[1],
                 "line_start": r[2], "line_end": r[3], "file": r[4], "file_hash": r[5]}
+
+    def inspect_variable(self, qualname: str) -> dict | None:
+        rows = self._rows(
+            "MATCH (v:ModuleVar {qualname: $q})-[:DEFINED_IN]->(f:File) "
+            "RETURN v.id, v.line, f.path, f.hash LIMIT 1",
+            {"q": qualname})
+        if not rows:
+            return None
+        r = rows[0]
+        return {"symbol_id": r[0], "qualname": qualname, "kind": "variable",
+                "line_start": r[1], "line_end": r[1], "file": r[2], "file_hash": r[3]}
 
     # -- tool 3: bounded callers/callees -------------------------------------
     def neighbors(self, qualname: str, direction: str = "callers",
@@ -199,6 +341,19 @@ class QueryTools:
             "development|hacking)(\\..*)?$' RETURN f.path LIMIT 20")
         return [r[0] for r in rows]
 
+    # -- tool 7: who touches an external name ----------------------------------
+    def external_usage(self, name: str) -> list[dict]:
+        """Internal symbols calling or referencing an external (stdlib or
+        third-party) dotted name, e.g. 'hashlib.sha1'. Bounded; EXACT/CALLS
+        and REFS relations only. Useful for dependency-impact questions."""
+        rows = self._rows(
+            "MATCH (e:External)<-[r]-(s:Symbol)-[:DEFINED_IN]->(f:File) "
+            "WHERE e.expr = $n OR e.expr ENDS WITH '.' + $n "
+            "RETURN DISTINCT s.qualname, type(r), r.tag, f.path LIMIT $lim",
+            {"n": name, "lim": MAX_RESULTS})
+        return [{"qualname": r[0], "via": r[1], "tag": r[2], "file": r[3]}
+                for r in rows]
+
     # -- tool 6: graph stats for pack header -----------------------------------
     def stats(self) -> dict:
         def n(q):
@@ -208,4 +363,5 @@ class QueryTools:
                 "symbols": n("MATCH (s:Symbol) WHERE s.kind <> 'module' RETURN count(s)"),
                 "calls_exact": n("MATCH ()-[c:CALLS {tag:'EXACT'}]->() RETURN count(c)"),
                 "calls_name": n("MATCH ()-[c:CALLS {tag:'NAME_ONLY'}]->() RETURN count(c)"),
-                "calls_unresolved": n("MATCH ()-[c:CALLS {tag:'UNRESOLVED'}]->() RETURN count(c)")}
+                "calls_unresolved": n("MATCH ()-[c:CALLS {tag:'UNRESOLVED'}]->() RETURN count(c)"),
+            "calls_external": n("MATCH ()-[c:CALLS {tag:'EXTERNAL'}]->() RETURN count(c)")}

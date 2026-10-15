@@ -1,5 +1,5 @@
 """Optional MCP (Model Context Protocol) stdio server exposing PatchPath's
-six read-only bounded tools to any MCP-capable agent client.
+seven read-only bounded tools to any MCP-capable agent client.
 
 Install: pip install -r requirements-mcp.txt
 Run:     python -m patchpath.mcp_server [--snapshot SNAP_ID]
@@ -65,6 +65,14 @@ def nearby_tests(qualname: str) -> str:
     """Test symbols with static paths to the given symbol (not executed -
     candidates only)."""
     return _dump(_qt().nearby_tests(qualname))
+
+
+@mcp.tool()
+def external_usage(name: str) -> str:
+    """Internal symbols that call or reference an external stdlib/third-party
+    dotted name (for example 'hashlib.sha1'). Answers dependency-impact
+    questions like 'who touches this library function?'. Bounded to 50."""
+    return _dump(_qt().external_usage(name))
 
 
 @mcp.tool()

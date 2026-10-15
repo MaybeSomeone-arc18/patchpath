@@ -42,6 +42,7 @@ class Case:
     parent_sha: str = ""
     fixed_files: list[str] = field(default_factory=list)
     fixed_symbols: list[str] = field(default_factory=list)
+    fixed_test_files: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -52,6 +53,7 @@ class Result:
     cand_symbols: list[str] = field(default_factory=list)
     file_hit: bool = False
     symbol_hit: bool = False
+    test_file_hit: bool = False
     unresolved_pct: int = 0
     pack_seconds: float = 0.0
     error: str | None = None
@@ -95,11 +97,15 @@ def fill_fix_details(case: Case, http: httpx.Client) -> None:
     if not parents:
         raise ValueError("fix commit has no parent")
     case.parent_sha = parents[0]["sha"]
+    case.fixed_files = []
+    case.fixed_symbols = []
+    case.fixed_test_files = []
     for f in d.get("files", []):
         if not f["filename"].endswith(".py"):
             continue
         if "/test" in f["filename"] or f["filename"].startswith("test"):
-            continue  # tests change too; oracle is the product code
+            case.fixed_test_files.append(f["filename"])  # secondary oracle
+            continue  # tests change too; primary oracle is the product code
         case.fixed_files.append(f["filename"])
         patch = f.get("patch") or ""
         case.fixed_symbols.extend(DEF_RE.findall(patch))
@@ -130,11 +136,16 @@ def run_case(case: Case, issue_client: IssueClient) -> Result:
         res.cand_symbols = [c["qualname"] for c in pack.candidates]
         files = set()
         for c in pack.candidates:
+            if c.get("file"):
+                files.add(c["file"])
+                continue
             card = tools.inspect_symbol(c["qualname"])
             if card:
                 files.add(card["file"])
         res.cand_files = sorted(files)
         res.file_hit = any(f in res.cand_files for f in case.fixed_files)
+        res.test_file_hit = bool(case.fixed_test_files) and \
+            any(f in res.cand_files for f in case.fixed_test_files)
         cand_names = {q.rsplit(".", 1)[-1] for q in res.cand_symbols}
         # candidates' 1-hop neighbors count as "reachable" evidence
         for q in res.cand_symbols:
@@ -173,6 +184,15 @@ def main() -> int:
         print(json.dumps([asdict(c) for c in cases], indent=2))
         return 0
 
+    # secondary test-file oracle: fetched once, cached, committed alongside
+    test_oracle_path = DATA / "test_oracle_cache.json"
+    test_oracle: dict = json.loads(test_oracle_path.read_text()) \
+        if test_oracle_path.exists() else {}
+    for case in cases:
+        key = f"{case.repo}#{case.issue}"
+        if not case.fixed_test_files and key in test_oracle:
+            case.fixed_test_files = test_oracle[key]
+
     issue_client = IssueClient(DATA / "issue_cache")
     if args.issue_evidence:
         class RecordedIssueClient:
@@ -181,10 +201,19 @@ def main() -> int:
                 return IssueEvidence(**json.loads(fp.read_text())["evidence"])
         issue_client = RecordedIssueClient()
     results: list[Result] = []
+    fetched_oracle = False
     for i, case in enumerate(cases, 1):
         try:
             if not case.parent_sha:
                 fill_fix_details(case, http)
+            elif not case.fixed_test_files:
+                key = f"{case.repo}#{case.issue}"
+                if key not in test_oracle:
+                    before = len(case.fixed_test_files)
+                    fill_fix_details(case, http)
+                    test_oracle[key] = case.fixed_test_files
+                    fetched_oracle = fetched_oracle or \
+                        len(case.fixed_test_files) != before or True
         except Exception as e:
             print(f"[{i}/{len(cases)}] {case.repo}#{case.issue}: fix details failed: {e}",
                   file=sys.stderr)
@@ -195,15 +224,20 @@ def main() -> int:
                   file=sys.stderr)
         results.append(run_case(case, issue_client))
 
+    test_oracle_path.write_text(json.dumps(test_oracle, indent=2, sort_keys=True))
     n = len(results)
     ok = [r for r in results if not r.error]
     file_hits = sum(1 for r in ok if r.file_hit)
     sym_hits = sum(1 for r in ok if r.file_hit and r.symbol_hit)
+    no_product = [r for r in ok if not r.case.fixed_files]
+    test_oracle_hits = sum(1 for r in no_product if r.test_file_hit)
     report = {
         "generated_at": time.time(),
         "total": n, "ran": len(ok), "errors": n - len(ok),
         "file_hit_at_5": f"{file_hits}/{n}",
         "file_and_symbol_hit": f"{sym_hits}/{n}",
+        "test_oracle_hits_among_no_product_oracle": \
+            f"{test_oracle_hits}/{len(no_product)}",
         "cases_without_product_python_oracle": [
             {"repo": r.case.repo, "issue": r.case.issue}
             for r in results if not r.case.fixed_files],
@@ -217,7 +251,8 @@ def main() -> int:
     for r in results:
         mark = "ERR" if r.error else ("FILE+SYM" if r.file_hit and r.symbol_hit
                                       else ("FILE" if r.file_hit else
-                                            ("SYM" if r.symbol_hit else "MISS")))
+                                            ("SYM" if r.symbol_hit else
+                                             ("TEST-FILE" if r.test_file_hit else "MISS"))))
         print(f"  {mark:9} {r.case.repo}#{r.case.issue} {r.error or ''}")
     print(f"[eval] wrote {out}")
     return 1 if report["errors"] else 0

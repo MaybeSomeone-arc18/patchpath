@@ -83,6 +83,25 @@ run the same day on two repos not used during development:
 A later jinja rerun could not score one case because the GitHub API rate
 limit blocked the fix-commit fetch; that artifact is not included.
 
+## Traversal latency, measured
+
+The load-bearing retrieval step is the bounded caller expansion
+(`MATCH p=(o:Symbol)-[:CALLS*1..3]->(s:Symbol)`). Median wall time of
+15 timed runs after one warm-up, local FalkorDB 6.0.2, measured
+2026-10-15 on the published packaging graph (pypa/packaging @ 9a11fba,
+10,415 CALLS edges, 2,127 Symbol nodes); client round-trip included:
+
+| target symbol                        | depth<=1        | depth<=2        | depth<=3         |
+| ------------------------------------ | --------------- | --------------- | ---------------- |
+| `version.Version`                    | 0.42 ms / 663 paths  | 0.79 ms / 852 paths  | 1.02 ms / 1,250 paths |
+| `version.Version.__init__`           | 0.70 ms / 661 paths  | 1.13 ms / 848 paths  | 0.94 ms / 1,246 paths |
+| `specifiers.Specifier`               | 0.28 ms / 228 paths  | 0.35 ms / 229 paths  | 0.34 ms / 231 paths  |
+
+Three-hop expansion over more than a thousand paths stays near one
+millisecond, so the graph step adds no visible latency inside the
+retrieval loop. These are single-machine measurements, not a throughput
+or comparison claim.
+
 ## Snapshot demonstration
 
 pypa/packaging at `ef837aad3127167671eb37b9f6bd8a94ec7ce26e` (analyzer

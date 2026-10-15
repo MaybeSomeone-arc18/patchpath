@@ -60,14 +60,16 @@ limit blocked the fix-commit fetch; that artifact is not included.
 ## Snapshot demonstration
 
 pypa/packaging at `ef837aad3127167671eb37b9f6bd8a94ec7ce26e` (analyzer
-0.2.0): 2,293 non-module symbols, 523 module/class variables, 11,506
-stored CALLS edges (6,102 EXACT / 631 NAME_ONLY / 3,474 EXTERNAL /
-1,299 UNRESOLVED), 1,206 REFS edges. The 1,856 constructor-derived EXACT
+0.3.0): 2,293 non-module symbols, 523 module/class variables, 11,606
+stored CALLS edges (6,494 EXACT / 552 NAME_ONLY / 3,474 EXTERNAL /
+1,086 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
 edges count in those totals; these are edges, not distinct source call
 sites. 9,604 AST call records were extracted. Some chained/dynamic call
 forms are omitted entirely.
 
-Analyzer 0.1.0 measured 6,102 EXACT / 657 NAME_ONLY / 4,747 UNRESOLVED
-on the same snapshot. The 0.2.0 split reclassifies known builtins,
-stdlib and third-party calls as EXTERNAL (3,474) instead of UNRESOLVED;
-total stored CALLS edges are unchanged.
+Analyzer history on the same snapshot: 0.1.0 measured 6,102 EXACT / 657
+NAME_ONLY / 4,747 UNRESOLVED. 0.2.0 reclassified known builtins, stdlib
+and third-party calls as EXTERNAL (3,474) instead of UNRESOLVED. 0.3.0
+resolves package re-exports (`click.echo` through `__init__`) and local
+constructor bindings (`runner = CliRunner(); runner.invoke()`), moving
+more edges to EXACT (6,494) and UNRESOLVED down to 1,086 (9%).

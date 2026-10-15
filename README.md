@@ -155,10 +155,10 @@ vocabulary with the fixed code. One jinja case in a later rerun was
 uncountable due to a GitHub API rate limit, not a pack failure.
 
 At packaging commit `ef837aad3127167671eb37b9f6bd8a94ec7ce26e`:
-2,293 non-module symbols, 523 module/class variables, 11,506 stored CALLS
-edges (6,102 EXACT / 631 NAME_ONLY / 3,474 EXTERNAL / 1,299 UNRESOLVED,
-rounded 53/5/30/11%) and 1,206 REFS edges. CALLS totals include 1,856
-derived constructor edges, not 11,506 distinct source calls. The analyzer
+2,293 non-module symbols, 523 module/class variables, 11,606 stored CALLS
+edges (6,494 EXACT / 552 NAME_ONLY / 3,474 EXTERNAL / 1,086 UNRESOLVED,
+rounded 56/5/30/9%) and 1,214 REFS edges. CALLS totals include derived
+constructor edges, not 11,606 distinct source calls. The analyzer
 extracted 9,604 AST call records. This does not measure runtime accuracy.
 
 ## AI use disclosure

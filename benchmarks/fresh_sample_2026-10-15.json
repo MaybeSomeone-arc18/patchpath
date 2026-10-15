@@ -1,0 +1,318 @@
+{
+  "method": "same discovery harness, live GitHub 2026-10-15, repos not used during development",
+  "samples": {
+    "pallets/itsdangerous": {
+      "generated_at": 1792054218.5997143,
+      "total": 4,
+      "ran": 4,
+      "errors": 0,
+      "file_hit_at_5": "4/4",
+      "file_and_symbol_hit": "3/4",
+      "test_oracle_hits_among_no_product_oracle": "0/0",
+      "cases_without_product_python_oracle": [],
+      "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus one-hop neighbors, not recall.",
+      "results": [
+        {
+          "case": {
+            "repo": "pallets/itsdangerous",
+            "issue": 375,
+            "fix_sha": "2f69e841d2a979c616a55b226e444694f5d9c962",
+            "parent_sha": "93ae366874bbd4f69d90495c45b2cd336387496c",
+            "fixed_files": [
+              "src/itsdangerous/signer.py"
+            ],
+            "fixed_symbols": [
+              "HMACAlgorithm",
+              "Signer",
+              "_lazy_sha1",
+              "get_signature"
+            ],
+            "fixed_test_files": [
+              "tests/test_itsdangerous/test_serializer.py"
+            ]
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/itsdangerous/signer.py"
+          ],
+          "cand_symbols": [
+            "src.itsdangerous.signer.HMACAlgorithm",
+            "src.itsdangerous.signer.Signer"
+          ],
+          "file_hit": true,
+          "symbol_hit": true,
+          "test_file_hit": false,
+          "unresolved_pct": 43,
+          "pack_seconds": 0.03,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/itsdangerous",
+            "issue": 370,
+            "fix_sha": "1e9550e9c30a1a9c346fed78815c4b23573ffb73",
+            "parent_sha": "05c805fce50a058ecc72ecbb91d02c98dc4a82ac",
+            "fixed_files": [
+              "src/itsdangerous/__init__.py"
+            ],
+            "fixed_symbols": [
+              "__getattr__"
+            ],
+            "fixed_test_files": []
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/itsdangerous/__init__.py"
+          ],
+          "cand_symbols": [
+            "src.itsdangerous.__version__"
+          ],
+          "file_hit": true,
+          "symbol_hit": false,
+          "test_file_hit": false,
+          "unresolved_pct": 45,
+          "pack_seconds": 0.02,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/itsdangerous",
+            "issue": 347,
+            "fix_sha": "385c0eb7501b121b1fddafe19c547073f5a458a0",
+            "parent_sha": "bc88e945d31c407e16c3f4e1c713c12dd598e58d",
+            "fixed_files": [
+              "src/itsdangerous/serializer.py",
+              "src/itsdangerous/timed.py",
+              "src/itsdangerous/url_safe.py"
+            ],
+            "fixed_symbols": [
+              "Serializer",
+              "TimedSerializer",
+              "TimestampSigner",
+              "URLSafeSerializer",
+              "URLSafeSerializerMixin",
+              "URLSafeTimedSerializer",
+              "_PDataSerializer",
+              "__init__",
+              "dump_payload",
+              "dumps",
+              "is_text_serializer",
+              "iter_unsigners",
+              "load_payload",
+              "loads",
+              "secret_key",
+              "validate"
+            ],
+            "fixed_test_files": []
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/itsdangerous/exc.py",
+            "src/itsdangerous/serializer.py"
+          ],
+          "cand_symbols": [
+            "src.itsdangerous.serializer.Serializer",
+            "src.itsdangerous.serializer.Serializer.dumps",
+            "src.itsdangerous.exc.BadData.__init__",
+            "src.itsdangerous.exc.BadSignature.__init__",
+            "src.itsdangerous.exc.BadTimeSignature.__init__"
+          ],
+          "file_hit": true,
+          "symbol_hit": true,
+          "test_file_hit": false,
+          "unresolved_pct": 45,
+          "pack_seconds": 0.05,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/itsdangerous",
+            "issue": 300,
+            "fix_sha": "64cd581d83c0770ec5683d312cedbed06395b9ed",
+            "parent_sha": "faa28bccc85ee47a8274536dd3649a0b67d0a75b",
+            "fixed_files": [
+              "src/itsdangerous/timed.py"
+            ],
+            "fixed_symbols": [
+              "unsign"
+            ],
+            "fixed_test_files": []
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/itsdangerous/signer.py",
+            "src/itsdangerous/timed.py",
+            "tests/test_itsdangerous/test_serializer.py"
+          ],
+          "cand_symbols": [
+            "src.itsdangerous.signer.Signer.unsign",
+            "src.itsdangerous.timed.TimestampSigner.unsign",
+            "tests.test_itsdangerous.test_serializer.TestSerializer.test_loads_unsafe.BadUnsign.unsign",
+            "src.itsdangerous.timed.TimestampSigner.timestamp_to_datetime",
+            "src.itsdangerous.timed.TimestampSigner"
+          ],
+          "file_hit": true,
+          "symbol_hit": true,
+          "test_file_hit": false,
+          "unresolved_pct": 45,
+          "pack_seconds": 0.03,
+          "error": null
+        }
+      ]
+    },
+    "pallets/jinja": {
+      "generated_at": 1792053834.5846667,
+      "total": 4,
+      "ran": 4,
+      "errors": 0,
+      "file_hit_at_5": "1/4",
+      "file_and_symbol_hit": "1/4",
+      "test_oracle_hits_among_no_product_oracle": "0/0",
+      "cases_without_product_python_oracle": [],
+      "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus one-hop neighbors, not recall.",
+      "results": [
+        {
+          "case": {
+            "repo": "pallets/jinja",
+            "issue": 1701,
+            "fix_sha": "a4abbfd7538e9ff216244266579232585033136c",
+            "parent_sha": "791dd3b0415b99faac229d42a81db1d7096b003c",
+            "fixed_files": [
+              "src/jinja2/runtime.py"
+            ],
+            "fixed_symbols": [
+              "__call__",
+              "super"
+            ],
+            "fixed_test_files": [
+              "tests/test_nativetypes.py"
+            ]
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/jinja2/environment.py",
+            "src/jinja2/nativetypes.py"
+          ],
+          "cand_symbols": [
+            "src.jinja2.nativetypes.NativeTemplate.render",
+            "src.jinja2.environment.Environment.handle_exception",
+            "src.jinja2.nativetypes.native_concat",
+            "src.jinja2.nativetypes.NativeEnvironment",
+            "src.jinja2.environment.Environment.from_string"
+          ],
+          "file_hit": false,
+          "symbol_hit": false,
+          "test_file_hit": false,
+          "unresolved_pct": 34,
+          "pack_seconds": 0.14,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/jinja",
+            "issue": 1253,
+            "fix_sha": "c8fdce1e0333f1122b244b03a48535fdd7b03d91",
+            "parent_sha": "fbc3a696c729d177340cc089531de7e2e5b6f065",
+            "fixed_files": [
+              "src/jinja2/idtracking.py"
+            ],
+            "fixed_symbols": [
+              "load"
+            ],
+            "fixed_test_files": [
+              "tests/test_regression.py"
+            ]
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "docs/conf.py",
+            "src/jinja2/exceptions.py",
+            "src/jinja2/utils.py"
+          ],
+          "cand_symbols": [
+            "src.jinja2.exceptions.UndefinedError",
+            "docs.conf.project",
+            "src.jinja2.utils.missing"
+          ],
+          "file_hit": false,
+          "symbol_hit": false,
+          "test_file_hit": false,
+          "unresolved_pct": 34,
+          "pack_seconds": 0.13,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/jinja",
+            "issue": 1792,
+            "fix_sha": "767b23617628419ae3709ccfb02f9602ae9fe51f",
+            "parent_sha": "48b0687e05a5466a91cd5812d604fa37ad0943b4",
+            "fixed_files": [
+              "src/jinja2/compiler.py"
+            ],
+            "fixed_symbols": [
+              "visit_FromImport"
+            ],
+            "fixed_test_files": [
+              "tests/test_compile.py"
+            ]
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/jinja2/environment.py",
+            "src/jinja2/utils.py"
+          ],
+          "cand_symbols": [
+            "src.jinja2.environment.Template.filename",
+            "src.jinja2.utils.missing",
+            "src.jinja2.environment.Environment"
+          ],
+          "file_hit": false,
+          "symbol_hit": false,
+          "test_file_hit": false,
+          "unresolved_pct": 34,
+          "pack_seconds": 0.13,
+          "error": null
+        },
+        {
+          "case": {
+            "repo": "pallets/jinja",
+            "issue": 1661,
+            "fix_sha": "58a358f0928df381c003be244b930367c68dbb85",
+            "parent_sha": "b4b28ec01c60b8753ab53fe60b10d7dbaa55842b",
+            "fixed_files": [
+              "src/jinja2/loaders.py"
+            ],
+            "fixed_symbols": [
+              "get_source"
+            ],
+            "fixed_test_files": [
+              "tests/test_loader.py"
+            ]
+          },
+          "status": "evidence assembled",
+          "cand_files": [
+            "src/jinja2/compiler.py",
+            "src/jinja2/exceptions.py",
+            "src/jinja2/lexer.py",
+            "src/jinja2/loaders.py",
+            "tests/test_loader.py"
+          ],
+          "cand_symbols": [
+            "src.jinja2.exceptions.TemplateNotFound",
+            "tests.test_loader.TestFileSystemLoader.searchpath",
+            "src.jinja2.compiler.operators",
+            "src.jinja2.lexer.operators",
+            "src.jinja2.loaders.split_template_path"
+          ],
+          "file_hit": true,
+          "symbol_hit": true,
+          "test_file_hit": true,
+          "unresolved_pct": 34,
+          "pack_seconds": 0.18,
+          "error": null
+        }
+      ]
+    }
+  }
+}

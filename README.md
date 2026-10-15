@@ -16,8 +16,9 @@ on Connected Data.
 ## Why a graph
 
 FalkorDB stores files, symbols, static CALLS relationships and internal
-IMPORTS. Candidate selection is lexical matching over graph nodes;
-callers and test candidates use bounded graph traversals. Contribution
+IMPORTS. Candidate selection is lexical matching over graph nodes -
+names, dotted paths, traceback frames, parameter names and constants -
+expanded by bounded graph traversals for callers and test candidates. Contribution
 rules are detected by filename, not interpreted. Removing the graph
 removes these query paths; there is no keyword-only fallback disguised
 as graph output.
@@ -57,14 +58,23 @@ not a hosted or multi-tenant deployment.
 - `Snapshot`: repo, commit SHA, analyzer/schema versions
 - `File`: normalized path and SHA-256 content hash
 - `Symbol`: function/class/method or synthetic module, qualified name,
-  line range, test flag
+  line range, test flag, parameter names and (for classes) base names
+- `ModuleVar`: a module- or class-level assignment target (constants,
+  flags, aliases); searchable but not counted as a symbol
+- `External`: a known outside-snapshot name (builtin, stdlib or
+  third-party import root)
 - `Unresolved`: a captured call target that could not be resolved
 
-Relationships: `IN_SNAPSHOT`, `DEFINED_IN`, `CALLS` and internal `IMPORTS`.
-CALLS edges are tagged `EXACT` (an analyzer-resolved definition),
-`NAME_ONLY` (unique-name suggestion), or `UNRESOLVED`. EXACT means a
-static binding decision, not proof of runtime behavior. Class calls can
-also produce derived edges to `__init__`.
+Relationships: `IN_SNAPSHOT`, `DEFINED_IN`, `CALLS`, `REFS` and internal
+`IMPORTS`. CALLS edges are tagged `EXACT` (an analyzer-resolved
+definition, including statically resolvable inherited methods),
+`NAME_ONLY` (unique-name suggestion), `EXTERNAL` (builtin/stdlib/
+third-party), or `UNRESOLVED`. EXACT means a static binding decision,
+not proof of runtime behavior. Class calls can also produce derived
+edges to `__init__`. REFS edges record resolved non-call references -
+decorators, parameter defaults and module/class assignment values such
+as `digest_method = hashlib.sha1` - so dependency touch points like "who
+uses `hashlib.sha1`?" are graph queries, not grep.
 
 Fixed, parameterized tools run queries such as:
 
@@ -107,9 +117,9 @@ pip install -r requirements-mcp.txt
 python -m patchpath.mcp_server --repo pypa/packaging
 ```
 
-Six read-only tools over an ingested snapshot: `snapshot_status`,
+Seven read-only tools over an ingested snapshot: `snapshot_status`,
 `find_candidates`, `inspect_symbol`, `neighbors`, `nearby_tests`,
-`constraint_files`. The stdio server cannot ingest or mutate graph data;
+`external_usage`, `constraint_files`. The stdio server cannot ingest or mutate graph data;
 it connects to the local graph server. Bind a repo or explicit snapshot
 when several repos have been ingested.
 
@@ -124,19 +134,30 @@ python -m patchpath.eval --cases benchmarks/cases_2026-10-15.json \
 ```
 
 On the 2026-10-15 raw auto-discovered 12-issue sample across packaging,
-requests and click: **7/12 any-changed-product-file hits among the first
-five candidate symbols**, **5/12 with both a file hit and a heuristic
-symbol hit**, zero runtime errors. These are issue-level hit rates, not
-file/symbol recall or general accuracy. Three cases have no product-Python
-file in the extracted oracle and are retained as misses. Symbol matching
-uses bare diff names plus one-hop caller/callee names and can collide.
-Issue text was observed after the fix and may have been edited. See the
-benchmark notes before comparing systems. Live discovery without `--cases`
-changes as GitHub changes; it is not the frozen sample.
+requests and click: **8/12 any-changed-product-file hits among the first
+five candidate symbols**, **6/12 with both a file hit and a heuristic
+symbol hit**, zero runtime errors. The three cases with no product-Python
+file in the extracted oracle are retained as misses in that headline; all
+three do surface the actually-fixed test file under the secondary
+test-file oracle (3/3). The only case with no useful candidate is
+requests #6711, whose recorded issue text names no code. These are
+issue-level hit rates, not file/symbol recall or general accuracy. Symbol
+matching uses bare diff names plus one-hop caller/callee names and can
+collide. Issue text was observed after the fix and may have been edited.
+See the benchmark notes before comparing systems. Live discovery without
+`--cases` changes as GitHub changes; it is not the frozen sample.
+
+As a generalization check, the same discovery harness was run on two
+repos it was not tuned on (2026-10-15, live GitHub): pallets/itsdangerous
+scored 4/4 file hits (3/4 with symbol hit); pallets/jinja scored 1/4 -
+the three misses are compiler-internals issues whose text shares little
+vocabulary with the fixed code. One jinja case in a later rerun was
+uncountable due to a GitHub API rate limit, not a pack failure.
 
 At packaging commit `ef837aad3127167671eb37b9f6bd8a94ec7ce26e`:
-2,293 non-module symbols and 11,506 stored CALLS edges: 6,102 EXACT,
-657 NAME_ONLY, 4,747 UNRESOLVED (rounded 53/6/41%). These include 1,856
+2,293 non-module symbols, 523 module/class variables, 11,506 stored CALLS
+edges (6,102 EXACT / 631 NAME_ONLY / 3,474 EXTERNAL / 1,299 UNRESOLVED,
+rounded 53/5/30/11%) and 1,206 REFS edges. CALLS totals include 1,856
 derived constructor edges, not 11,506 distinct source calls. The analyzer
 extracted 9,604 AST call records. This does not measure runtime accuracy.
 

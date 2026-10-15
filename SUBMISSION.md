@@ -17,17 +17,22 @@ SQLite holds snapshot readiness metadata, not the relationship graph.
 ## Evidence
 
 At packaging ef837aad3127167671eb37b9f6bd8a94ec7ce26e: 2,293 non-module
-symbols and 11,506 stored CALLS edges (6,102 EXACT / 657 NAME_ONLY /
-4,747 UNRESOLVED, rounded 53/6/41%). Totals include 1,856 derived
+symbols, 523 module/class variables, 11,506 stored CALLS edges (6,102
+EXACT / 631 NAME_ONLY / 3,474 EXTERNAL / 1,299 UNRESOLVED, rounded
+53/5/30/11%) and 1,206 REFS edges. Totals include 1,856 derived
 constructor edges and are not unique source call counts or accuracy.
 
-Frozen raw auto-discovered sample, 2026-10-15: 7/12 issue-level
+Frozen raw auto-discovered sample, 2026-10-15: 8/12 issue-level
 any-changed-product-file hits among the first five candidate symbols;
-5/12 also have a heuristic symbol hit; zero runtime errors. Three cases
-have no product-Python file in the harness oracle and count as misses.
-The symbol diagnostic uses bare names and one-hop neighbors, not recall.
-Issue text was observed after the fixes. Full cases, text and outcomes are
-committed under benchmarks/; no historical curated score is claimed.
+6/12 also have a heuristic symbol hit; zero runtime errors. Three cases
+have no product-Python file in the harness oracle and count as misses in
+the headline; all three surface the fixed test file under the secondary
+test-file oracle (3/3). The symbol diagnostic uses bare names and one-hop
+neighbors, not recall. Issue text was observed after the fixes. Full
+cases, text and outcomes are committed under benchmarks/; no historical
+curated score is claimed. A live generalization run on untuned repos the
+same day scored 4/4 file hits on pallets/itsdangerous and 1/4 on
+pallets/jinja (compiler-internals issues); both samples are committed.
 
 ## Known limits
 

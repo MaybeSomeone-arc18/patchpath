@@ -1,0 +1,442 @@
+{
+  "generated_at": 1792054212.8521347,
+  "total": 12,
+  "ran": 12,
+  "errors": 0,
+  "file_hit_at_5": "8/12",
+  "file_and_symbol_hit": "6/12",
+  "test_oracle_hits_among_no_product_oracle": "3/3",
+  "cases_without_product_python_oracle": [
+    {
+      "repo": "pypa/packaging",
+      "issue": 1406
+    },
+    {
+      "repo": "pallets/click",
+      "issue": 3036
+    },
+    {
+      "repo": "pallets/click",
+      "issue": 3128
+    }
+  ],
+  "method": "Any changed product-Python file in first five candidate symbols; symbol diagnostic uses bare names plus one-hop neighbors, not recall.",
+  "results": [
+    {
+      "case": {
+        "repo": "pypa/packaging",
+        "issue": 1406,
+        "fix_sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+        "parent_sha": "ae9d39c13b5f5485b6295eb100b08ef9c3dde852",
+        "fixed_files": [],
+        "fixed_symbols": [],
+        "fixed_test_files": [
+          "tests/property/strategies.py",
+          "tests/property/test_specifier_matching.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "tests/property/strategies.py",
+        "tests/property/test_specifier_matching.py"
+      ],
+      "cand_symbols": [
+        "tests.property.test_specifier_matching.TestCompatibleReleaseDefinition.test_compatible_release_matches_expected_compatible",
+        "tests.property.test_specifier_matching.TestCompatibleReleaseDefinition",
+        "tests.property.strategies.SETTINGS",
+        "tests.property.strategies.multi_segment_versions",
+        "tests.property.strategies.pep440_versions"
+      ],
+      "file_hit": false,
+      "symbol_hit": false,
+      "test_file_hit": true,
+      "unresolved_pct": 16,
+      "pack_seconds": 0.37,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pypa/packaging",
+        "issue": 577,
+        "fix_sha": "26fa1d42ccd98010d5fcf701dd10069e761b034c",
+        "parent_sha": "826426fc88773515fab149a5f6bde85761e57fbb",
+        "fixed_files": [
+          "src/packaging/tags.py",
+          "src/packaging/utils.py"
+        ],
+        "fixed_symbols": [
+          "UnsortedTagsError",
+          "parse_tag",
+          "parse_wheel_filename"
+        ],
+        "fixed_test_files": [
+          "tests/test_tags.py",
+          "tests/test_utils.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/packaging/direct_url.py",
+        "src/packaging/tags.py",
+        "src/packaging/utils.py"
+      ],
+      "cand_symbols": [
+        "src.packaging.utils.parse_wheel_filename",
+        "src.packaging.tags.Tag.platform",
+        "src.packaging.tags.INTERPRETER_SHORT_NAMES",
+        "src.packaging.tags.parse_tag",
+        "src.packaging.direct_url.DirectUrl.validate"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 16,
+      "pack_seconds": 0.59,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pypa/packaging",
+        "issue": 1231,
+        "fix_sha": "9c6f09ba6b313a561d6a64d988647ff3115e82ae",
+        "parent_sha": "206834025040aca6f8a2fdfc4039dbfa2a9861a6",
+        "fixed_files": [
+          "src/packaging/utils.py"
+        ],
+        "fixed_symbols": [
+          "canonicalize_name"
+        ],
+        "fixed_test_files": []
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/packaging/metadata.py",
+        "src/packaging/utils.py"
+      ],
+      "cand_symbols": [
+        "src.packaging.utils.is_normalized_name",
+        "src.packaging.utils.canonicalize_name",
+        "src.packaging.metadata.RawMetadata.maintainer",
+        "src.packaging.metadata.Metadata.maintainer"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 16,
+      "pack_seconds": 0.56,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pypa/packaging",
+        "issue": 1318,
+        "fix_sha": "d3e7f5d96da0c27103324cb9fb349b54e753a877",
+        "parent_sha": "9a11fba3d53215dc2ff08d8e9d0d5780c08fbe8f",
+        "fixed_files": [
+          "src/packaging/version.py"
+        ],
+        "fixed_symbols": [
+          "__init__"
+        ],
+        "fixed_test_files": [
+          "tests/test_specifiers.py",
+          "tests/test_version.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/packaging/_parser.py",
+        "src/packaging/pylock.py",
+        "src/packaging/tags.py",
+        "src/packaging/version.py"
+      ],
+      "cand_symbols": [
+        "src.packaging.pylock.Pylock.packages",
+        "src.packaging.version._SIMPLE_VERSION_INDICATORS",
+        "src.packaging.tags.Tag.platform",
+        "src.packaging._parser.Node._restore_value",
+        "src.packaging._parser.Node.__setstate__"
+      ],
+      "file_hit": true,
+      "symbol_hit": false,
+      "test_file_hit": false,
+      "unresolved_pct": 16,
+      "pack_seconds": 0.25,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "psf/requests",
+        "issue": 6813,
+        "fix_sha": "d58d8aa2f45c3575268d6d5250745ef69f9cf8b7",
+        "parent_sha": "91a3eabd3dcc4d7f36dd8249e4777a90ef9b4305",
+        "fixed_files": [
+          "src/requests/sessions.py"
+        ],
+        "fixed_symbols": [
+          "request"
+        ],
+        "fixed_test_files": []
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/requests/sessions.py"
+      ],
+      "cand_symbols": [
+        "src.requests.sessions.Session.request"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 35,
+      "pack_seconds": 0.07,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "psf/requests",
+        "issue": 6711,
+        "fix_sha": "fd628095d7b9ddbf3e987d8a4bf0e6062768916f",
+        "parent_sha": "e8d2c015eecda8273612dd4562425e00cd164ba5",
+        "fixed_files": [
+          "src/requests/adapters.py"
+        ],
+        "fixed_symbols": [
+          "request_url"
+        ],
+        "fixed_test_files": [
+          "tests/test_adapters.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/requests/compat.py",
+        "src/requests/exceptions.py",
+        "src/requests/help.py"
+      ],
+      "cand_symbols": [
+        "src.requests.exceptions.RequestException.response",
+        "src.requests.compat.chardet",
+        "src.requests.help.chardet",
+        "src.requests.help.charset_normalizer",
+        "src.requests.help.cryptography"
+      ],
+      "file_hit": false,
+      "symbol_hit": false,
+      "test_file_hit": false,
+      "unresolved_pct": 36,
+      "pack_seconds": 0.17,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "psf/requests",
+        "issue": 7375,
+        "fix_sha": "b294b08fe3b08df9f646f64d1250f96193dab066",
+        "parent_sha": "5f3ff9b9e4d3d44960467e7877e06e9efa22f20b",
+        "fixed_files": [
+          "src/requests/__init__.py"
+        ],
+        "fixed_symbols": [
+          "check_compatibility"
+        ],
+        "fixed_test_files": []
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/requests/__init__.py",
+        "src/requests/compat.py",
+        "src/requests/help.py"
+      ],
+      "cand_symbols": [
+        "src.requests.compat.chardet",
+        "src.requests.help.chardet",
+        "src.requests.chardet_version",
+        "src.requests.charset_normalizer_version",
+        "src.requests.check_compatibility"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 35,
+      "pack_seconds": 0.09,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "psf/requests",
+        "issue": 3698,
+        "fix_sha": "36c9c8c3de87db42295f68ee72503238895e7dfe",
+        "parent_sha": "dfad00a6e84bc75b12468ca29ccf4f971c813fc8",
+        "fixed_files": [
+          "requests/models.py"
+        ],
+        "fixed_symbols": [
+          "content"
+        ],
+        "fixed_test_files": [
+          "tests/test_requests.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "docs/conf.py",
+        "requests/models.py",
+        "requests/packages/urllib3/connection.py",
+        "requests/packages/urllib3/packages/six.py",
+        "setup.py"
+      ],
+      "cand_symbols": [
+        "docs.conf.project",
+        "setup.packages",
+        "requests.packages.urllib3.packages.six.Module_six_moves_urllib.request",
+        "requests.models.CONTENT_CHUNK_SIZE",
+        "requests.packages.urllib3.connection.ConnectionError"
+      ],
+      "file_hit": true,
+      "symbol_hit": false,
+      "test_file_hit": false,
+      "unresolved_pct": 34,
+      "pack_seconds": 0.22,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pallets/click",
+        "issue": 3036,
+        "fix_sha": "e5cb12ba5e81ca382062a4b513daddb535a576e3",
+        "parent_sha": "00f257bb8e714064bea16425007543bbc0800445",
+        "fixed_files": [],
+        "fixed_symbols": [],
+        "fixed_test_files": [
+          "tests/test_defaults.py",
+          "tests/test_options.py",
+          "tests/test_types.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/click/core.py",
+        "tests/test_arguments.py",
+        "tests/test_options.py"
+      ],
+      "cand_symbols": [
+        "src.click.core.Context",
+        "tests.test_arguments.test_required_argument",
+        "tests.test_arguments.test_good_defaults_for_nargs",
+        "tests.test_arguments.test_bad_defaults_for_nargs",
+        "tests.test_options.test_good_defaults_for_multiple"
+      ],
+      "file_hit": false,
+      "symbol_hit": false,
+      "test_file_hit": true,
+      "unresolved_pct": 47,
+      "pack_seconds": 0.19,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pallets/click",
+        "issue": 3487,
+        "fix_sha": "a5f5aa6d4012d256ccca24638f2642fc371e9f77",
+        "parent_sha": "d42f15b71757de791a5781fb179fd972da9169f5",
+        "fixed_files": [
+          "src/click/utils.py"
+        ],
+        "fixed_symbols": [
+          "__iter__",
+          "echo"
+        ],
+        "fixed_test_files": [
+          "tests/test_utils.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "examples/complex/complex/cli.py",
+        "src/click/types.py",
+        "src/click/utils.py"
+      ],
+      "cand_symbols": [
+        "src.click.utils.echo",
+        "src.click.types.OptionHelpExtra.required",
+        "src.click.types.File",
+        "examples.complex.complex.cli.Environment",
+        "src.click.utils._posixify"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 46,
+      "pack_seconds": 0.29,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pallets/click",
+        "issue": 3084,
+        "fix_sha": "ebcd548d50662bc8fa4f8b9ec7fe13cb8310bfaa",
+        "parent_sha": "7f7bbe4569ea68e8dabee232eade069ef3310aea",
+        "fixed_files": [
+          "src/click/core.py"
+        ],
+        "fixed_symbols": [
+          "__init__"
+        ],
+        "fixed_test_files": [
+          "tests/test_options.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "src/click/core.py",
+        "src/click/decorators.py",
+        "src/click/types.py"
+      ],
+      "cand_symbols": [
+        "src.click.types.OptionHelpExtra.default",
+        "src.click.decorators.option",
+        "src.click.core.Option",
+        "src.click.decorators.argument",
+        "src.click.core.Option.__init__"
+      ],
+      "file_hit": true,
+      "symbol_hit": true,
+      "test_file_hit": false,
+      "unresolved_pct": 46,
+      "pack_seconds": 0.31,
+      "error": null
+    },
+    {
+      "case": {
+        "repo": "pallets/click",
+        "issue": 3128,
+        "fix_sha": "a92c573f3195c9da3058eadf1735d38af186d22c",
+        "parent_sha": "0b5c6b75f617e6ee2f9f6dcd071b8a4bf183d1ed",
+        "fixed_files": [],
+        "fixed_symbols": [],
+        "fixed_test_files": [
+          "tests/test_termui.py"
+        ]
+      },
+      "status": "evidence assembled",
+      "cand_files": [
+        "examples/complex/complex/cli.py",
+        "tests/test_termui.py"
+      ],
+      "cand_symbols": [
+        "tests.test_termui.test_edit",
+        "examples.complex.complex.cli.Environment",
+        "tests.test_termui.FakeClock",
+        "tests.test_termui.FakeClock.__init__",
+        "tests.test_termui.FakeClock.advance_time"
+      ],
+      "file_hit": false,
+      "symbol_hit": false,
+      "test_file_hit": true,
+      "unresolved_pct": 45,
+      "pack_seconds": 0.14,
+      "error": null
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
   "issue_number": 1449,
   "issue_url": "https://github.com/pypa/packaging/issues/1449",
-  "generated_at": 1792042867.590263,
+  "generated_at": 1792055447.7287455,
   "status": "evidence assembled",
   "issue": {
     "state": "open",
@@ -11,40 +11,45 @@
     "labels": [],
     "assignees": [],
     "comments": 0,
-    "observed_at": 1792042867.0243225,
-    "batch": "0efc77cc9b77",
+    "observed_at": 1792055446.5869918,
+    "batch": "c4143959173e",
     "competing_work_status": "verified",
-    "competing_work_observed_at": 1792042867.2251673
+    "competing_work_observed_at": 1792055446.8415596
   },
   "candidates": [
     {
       "symbol_id": "1645a7a6105bfc81",
       "qualname": "src.packaging.markers.InvalidMarker",
       "kind": "class",
+      "file": "src/packaging/markers.py",
       "reason": "name 'InvalidMarker' appears in the issue title"
     },
     {
       "symbol_id": "cd0def7bd267bd44",
       "qualname": "src.packaging.requirements.InvalidRequirement",
       "kind": "class",
+      "file": "src/packaging/requirements.py",
       "reason": "name 'InvalidRequirement' appears in the issue title"
     },
     {
       "symbol_id": "a304241214c6ad5f",
       "qualname": "src.packaging.metadata.Metadata.from_email",
       "kind": "method",
+      "file": "src/packaging/metadata.py",
       "reason": "full dotted name 'src.packaging.metadata.Metadata.from_email' in issue text"
     },
     {
       "symbol_id": "0559d32459e7db50",
       "qualname": "src.packaging.pylock.Pylock.from_dict",
       "kind": "method",
+      "file": "src/packaging/pylock.py",
       "reason": "full dotted name 'src.packaging.pylock.Pylock.from_dict' in issue text"
     },
     {
       "symbol_id": "5d6a2f768926260a",
       "qualname": "src.packaging.markers.Marker.__init__",
       "kind": "method",
+      "file": "src/packaging/markers.py",
       "reason": "full dotted name 'src.packaging.markers.Marker.__init__' in issue text"
     }
   ],
@@ -1716,7 +1721,7 @@
     }
   ],
   "unknowns": [
-    "41% of call sites in this snapshot are statically unresolved (includes external and dynamic targets); some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
+    "11% of call sites in this snapshot are statically unresolved (dynamic or opaque targets); another 30% are external (stdlib/third-party), not part of this snapshot's graph; some dynamic/chained calls are omitted entirely. Paths are a starting point, not a blast radius.",
     "1 open PR(s) reference this issue; competing work likely exists."
   ],
   "suggested_steps": [
@@ -1730,7 +1735,8 @@
     "sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
     "symbols": 2293,
     "calls_exact": 6102,
-    "calls_name": 657,
-    "calls_unresolved": 4747
+    "calls_name": 631,
+    "calls_unresolved": 1299,
+    "calls_external": 3474
   }
 }

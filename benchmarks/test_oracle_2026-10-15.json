@@ -1,0 +1,37 @@
+{
+  "pallets/click#3036": [
+    "tests/test_defaults.py",
+    "tests/test_options.py",
+    "tests/test_types.py"
+  ],
+  "pallets/click#3084": [
+    "tests/test_options.py"
+  ],
+  "pallets/click#3128": [
+    "tests/test_termui.py"
+  ],
+  "pallets/click#3487": [
+    "tests/test_utils.py"
+  ],
+  "psf/requests#3698": [
+    "tests/test_requests.py"
+  ],
+  "psf/requests#6711": [
+    "tests/test_adapters.py"
+  ],
+  "psf/requests#6813": [],
+  "psf/requests#7375": [],
+  "pypa/packaging#1231": [],
+  "pypa/packaging#1318": [
+    "tests/test_specifiers.py",
+    "tests/test_version.py"
+  ],
+  "pypa/packaging#1406": [
+    "tests/property/strategies.py",
+    "tests/property/test_specifier_matching.py"
+  ],
+  "pypa/packaging#577": [
+    "tests/test_tags.py",
+    "tests/test_utils.py"
+  ]
+}

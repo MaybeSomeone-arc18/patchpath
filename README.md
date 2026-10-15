@@ -49,6 +49,11 @@ For the exact demonstration snapshot, pass
 `--ref ef837aad3127167671eb37b9f6bd8a94ec7ce26e` to ingest and pack.
 Use a full 40-character SHA for reproducible pinning.
 
+Graph cleanup: `python -m patchpath.cli prune --dry-run` lists staging
+leftovers and superseded graphs (older analyzer versions, failed
+ingests); `prune` drops them. Orphan graphs with no registry entry are
+reported but never dropped. Do not run it while an ingest is running.
+
 Optional local viewer: `python -m patchpath.viewer`. It binds loopback,
 prints a per-start access token, and can build packs. It is single-user,
 not a hosted or multi-tenant deployment.

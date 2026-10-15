@@ -145,6 +145,64 @@ def cmd_pack(args) -> int:
     return 0
 
 
+
+
+def select_prune_targets(graph_names, registered):
+    """Choose graphs safe to drop. `registered` maps snapshot_id ->
+    (status, ready_graph_name) from the registry, the source of truth.
+
+    Drops: staging graphs (crash leftovers; do not run while ingesting)
+    and published graphs the registry has superseded (re-ingested with a
+    different graph name) or marked FAILED. Orphans (no registry row)
+    are reported, never dropped: the registry is the only authority on
+    which graph a reader resolves.
+    """
+    staging, superseded, orphans = [], [], []
+    for name in graph_names:
+        if name.startswith("pp_stg_"):
+            staging.append(name)
+        elif name.startswith("pp_snap_"):
+            snap_id = name[len("pp_snap_"):].split("_a")[0]
+            row = registered.get(snap_id)
+            if row is None:
+                orphans.append(name)
+            else:
+                status, ready_graph = row
+                if status == "FAILED" or (status == "READY" and ready_graph != name):
+                    superseded.append(name)
+    return staging, superseded, orphans
+
+
+def cmd_prune(args) -> int:
+    from falkordb import FalkorDB
+    reg = Registry(DATA / "registry.db")
+    rows = reg.conn.execute(
+        "SELECT snapshot_id, status, graph_name FROM snapshots").fetchall()
+    registered = {r[0]: (r[1], r[2]) for r in rows}
+    try:
+        names = FalkorDB(port=6380).list_graphs()
+    except Exception:
+        print("error: FalkorDB is not reachable on 127.0.0.1:6380", file=sys.stderr)
+        return 2
+    staging, superseded, orphans = select_prune_targets(names, registered)
+    if args.dry_run:
+        for label, group in (("staging", staging), ("superseded", superseded),
+                             ("orphan (kept)", orphans)):
+            for g in group:
+                print(f"[prune:dry-run] {label}: {g}")
+        print(f"[prune:dry-run] would drop {len(staging) + len(superseded)} "
+              f"of {len(names)} graphs")
+        return 0
+    db = FalkorDB(port=6380)
+    dropped = 0
+    for g in staging + superseded:
+        db.select_graph(g).delete()
+        dropped += 1
+    print(f"[prune] dropped {dropped} of {len(names)} graphs "
+          f"({len(orphans)} orphans kept, {len(names) - dropped - len(orphans)} live)")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="patchpath")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -158,6 +216,9 @@ def main() -> int:
     pk.add_argument("--ref", help="branch/tag/SHA (default: default branch)")
     pk.add_argument("--top", type=int, default=5, help="max candidate symbols")
     pk.set_defaults(fn=cmd_pack)
+    pr = sub.add_parser("prune", help="drop staging and superseded graphs (not while ingesting)")
+    pr.add_argument("--dry-run", action="store_true", help="list targets without dropping")
+    pr.set_defaults(fn=cmd_prune)
     args = ap.parse_args()
     return args.fn(args)
 

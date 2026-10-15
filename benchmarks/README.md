@@ -5,7 +5,7 @@ repo discovered by the harness's merged-PR search, at audit time.
 `issue_evidence_2026-10-15/` records the exact issue-text batches used.
 These are public GitHub records, not current availability checks.
 
-Two harness runs are committed:
+Three harness runs are committed:
 
 - `results_2026-10-15.json` - analyzer 0.1.0 run at audit time:
   7/12 file hits, 5/12 file+symbol hits.
@@ -13,6 +13,10 @@ Two harness runs are committed:
   frozen inputs: **8/12** any-changed-product-file hits among the first
   five candidate symbols, **6/12** with both that file hit and a
   heuristic symbol hit, zero runtime errors.
+- `results_2026-10-15_run3.json` - analyzer 0.5.0, same frozen inputs:
+  identical per-case outcomes (8/12 file, 6/12 file+symbol, 3/3
+  test-oracle, zero errors). The 0.3.0-0.5.0 graph-resolution work does
+  not change this sample's retrieval score.
 
 Reproduce the sample with the database running:
 
@@ -60,9 +64,9 @@ limit blocked the fix-commit fetch; that artifact is not included.
 ## Snapshot demonstration
 
 pypa/packaging at `ef837aad3127167671eb37b9f6bd8a94ec7ce26e` (analyzer
-0.3.0): 2,293 non-module symbols, 523 module/class variables, 11,606
-stored CALLS edges (6,494 EXACT / 552 NAME_ONLY / 3,474 EXTERNAL /
-1,086 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
+0.5.0): 2,293 non-module symbols, 523 module/class variables, 11,620
+stored CALLS edges (6,727 EXACT / 350 NAME_ONLY / 3,644 EXTERNAL /
+899 UNRESOLVED), 1,214 REFS edges. Constructor-derived EXACT
 edges count in those totals; these are edges, not distinct source call
 sites. 9,604 AST call records were extracted. Some chained/dynamic call
 forms are omitted entirely.
@@ -72,4 +76,10 @@ NAME_ONLY / 4,747 UNRESOLVED. 0.2.0 reclassified known builtins, stdlib
 and third-party calls as EXTERNAL (3,474) instead of UNRESOLVED. 0.3.0
 resolves package re-exports (`click.echo` through `__init__`) and local
 constructor bindings (`runner = CliRunner(); runner.invoke()`), moving
-more edges to EXACT (6,494) and UNRESOLVED down to 1,086 (9%).
+more edges to EXACT (6,494) and UNRESOLVED down to 1,086 (9%). 0.4.0
+binds test-function parameters named after pytest fixtures to the
+fixture's returned class (`def test_x(runner)` with a fixture returning
+`CliRunner()`). 0.5.0 binds annotated parameters (`ctx: Context`) to the
+annotation's class and classifies pytest builtin fixtures (monkeypatch,
+capfd, tmp_path, ...) as EXTERNAL: EXACT 6,727, NAME_ONLY 350,
+UNRESOLVED 899 (8%).

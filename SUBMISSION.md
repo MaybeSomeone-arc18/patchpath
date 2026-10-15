@@ -17,9 +17,9 @@ SQLite holds snapshot readiness metadata, not the relationship graph.
 ## Evidence
 
 At packaging ef837aad3127167671eb37b9f6bd8a94ec7ce26e: 2,293 non-module
-symbols, 523 module/class variables, 11,606 stored CALLS edges (6,494
-EXACT / 552 NAME_ONLY / 3,474 EXTERNAL / 1,086 UNRESOLVED, rounded
-56/5/30/9%) and 1,214 REFS edges. Totals include derived
+symbols, 523 module/class variables, 11,620 stored CALLS edges (6,727
+EXACT / 350 NAME_ONLY / 3,644 EXTERNAL / 899 UNRESOLVED, rounded
+58/3/31/8%) and 1,214 REFS edges. Totals include derived
 constructor edges and are not unique source call counts or accuracy.
 
 Frozen raw auto-discovered sample, 2026-10-15: 8/12 issue-level

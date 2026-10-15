@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS snapshots (
 
 class Registry:
     def __init__(self, path: str | Path):
+        if not path:
+            raise ValueError("registry path is required")
         self.conn = sqlite3.connect(str(path))
         self.conn.executescript(DDL)
 

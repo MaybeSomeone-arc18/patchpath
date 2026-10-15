@@ -372,7 +372,50 @@ def test_pytest_builtin_fixture_is_external():
 
 def test_fixture_name_outside_params_not_external():
     out = analyze_files([
-        ("m.py", "monkeypatch = object()\ndef go():\n    monkeypatch.setattr()\n"),
+        ("m.py", "monkeypatch = 1\ndef go():\n    monkeypatch.setattr()\n"),
     ], REPO)
     calls = _by_expr(out, "m.py")
     assert calls["monkeypatch.setattr"].tag != EXTERNAL
+
+
+def test_builtin_literal_local_is_external():
+    out = analyze_files([
+        ("t.py", "def f():\n    bits = []\n    bits.append(1)\n    s = \"x\"\n    s.decode()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["bits.append"].tag == EXTERNAL
+    assert calls["s.decode"].tag == EXTERNAL
+
+
+def test_builtin_call_result_local_is_external():
+    out = analyze_files([
+        ("t.py", "def f():\n    fh = open(\"x\")\n    fh.write(\"y\")\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["fh.write"].tag == EXTERNAL
+
+
+def test_literal_shadowed_by_ctor_binding():
+    out = analyze_files([
+        ("lib.py", "class A:\n    def go(self):\n        pass\n"),
+        ("t.py", "from lib import A\ndef f():\n    x = []\n    x = A()\n    x.go()\n"),
+    ], REPO)
+    calls = _by_expr(out, "t.py")
+    assert calls["x.go"].tag == EXACT
+    assert calls["x.go"].target_qual == "lib.A.go"
+
+
+def test_module_var_external_factory_is_external():
+    out = analyze_files([
+        ("m.py", "from collections import namedtuple\nT = namedtuple(\"T\", [\"a\"])\ndef f():\n    T(1)\n"),
+    ], REPO)
+    calls = _by_expr(out, "m.py")
+    assert calls["T"].tag == EXTERNAL
+
+
+def test_module_var_internal_factory_stays_honest():
+    out = analyze_files([
+        ("m.py", "def make():\n    pass\nX = make()\ndef f():\n    X()\n"),
+    ], REPO)
+    calls = _by_expr(out, "m.py")
+    assert calls["X"].tag == UNRESOLVED

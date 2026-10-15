@@ -203,7 +203,8 @@ class _Visitor(ast.NodeVisitor):
                  class_module: dict[str, str], import_maps: dict[str, dict[str, str]],
                  modules: set[str], reexports: dict[str, dict[str, str]] | None = None,
                  class_qualnames: set[str] | None = None,
-                 fixture_types: dict[str, str] | None = None):
+                 fixture_types: dict[str, str] | None = None,
+                 module_var_external: set[str] | None = None):
         self.path = path
         self.module = module_name(path)
         self.known = known_qualnames
@@ -218,6 +219,7 @@ class _Visitor(ast.NodeVisitor):
         self.fixture_types = fixture_types or {}
         self.var_types: dict[str, str] = {}
         self.func_params: set[str] = set()
+        self.module_var_external = module_var_external or set()
         self.out = FileAnalysis(path=path)
         self.scope: list[str] = []       # nesting of def/class names
         self.scope_kind: list[str] = []  # parallel: "class" | "function"
@@ -331,9 +333,23 @@ class _Visitor(ast.NodeVisitor):
         if self.scope_kind and self.scope_kind[-1] == "function":
             if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
                 self._track_ctor(node.targets[0].id, node.value)
+                self._track_literal(node.targets[0].id, node.value)
         elif node.value:
             self._ref(node.value, node.lineno)
         self.generic_visit(node)
+
+    _LITERAL_TYPES = ((ast.List, "builtins.list"), (ast.Dict, "builtins.dict"),
+                      (ast.Set, "builtins.set"), (ast.Tuple, "builtins.tuple"))
+
+    def _track_literal(self, name: str, value) -> None:
+        """x = [] / {} / "" / b"": the type is a statically known builtin, so
+        x.method() is an external binding, never an in-snapshot gap."""
+        for typ, marker in self._LITERAL_TYPES:
+            if isinstance(value, typ):
+                self.var_types[name] = marker
+                return
+        if isinstance(value, ast.Constant) and isinstance(value.value, (str, bytes)):
+            self.var_types[name] = "builtins.str" if isinstance(value.value, str) else "builtins.bytes"
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         if self.scope_kind and self.scope_kind[-1] == "function":
@@ -369,6 +385,10 @@ class _Visitor(ast.NodeVisitor):
                 tq = target if target in self.known else None
         if tq and tq in self.class_qualnames:
             self.var_types[name] = tq
+        elif expr.split(".")[0] in BUILTINS:
+            # f = open(...) / with open() as f: builtin call result, so
+            # f.method() is an external (builtin-type) binding
+            self.var_types[name] = "builtins." + expr.split(".")[0]
 
     # --- calls --------------------------------------------------------------
     def visit_Call(self, node: ast.Call) -> None:
@@ -426,6 +446,8 @@ class _Visitor(ast.NodeVisitor):
         # 0b) local variable bound to a known constructor: x.method()
         if root in self.var_types and "." in expr:
             cls = self.var_types[root]
+            if cls.startswith("builtins."):
+                return Call(caller, expr, None, EXTERNAL, line)
             rest = expr[len(root) + 1:]
             if f"{cls}.{rest}" in self.known:
                 return Call(caller, expr, f"{cls}.{rest}", EXACT, line)
@@ -466,6 +488,8 @@ class _Visitor(ast.NodeVisitor):
             return Call(caller, expr, None, EXTERNAL, line)
         if root in PYTEST_FIXTURES and root in self.func_params:
             return Call(caller, expr, None, EXTERNAL, line)
+        if root in self.module_var_external:
+            return Call(caller, expr, None, EXTERNAL, line)
         if mapped and not is_internal_module(mapped, self.modules, self.src_prefix):
             return Call(caller, expr, None, EXTERNAL, line)
         # 4) name-only fallback: unqualified final name matches exactly one symbol
@@ -505,6 +529,8 @@ class _Collector(ast.NodeVisitor):
         self.scope_kind: list[str] = []
         # pytest fixtures: name -> constructor expr of its single return call
         self.fixture_return_exprs: dict[str, str] = {}
+        # module-level 'X = <call>(...)': name -> call func expr
+        self.module_var_calls: dict[str, str] = {}
 
     def _qual(self, name: str) -> str:
         return ".".join([self.module, *self.scope, name])
@@ -571,6 +597,11 @@ class _Collector(ast.NodeVisitor):
         # module- and class-level names only; function bodies are locals
         if self.scope_kind and self.scope_kind[-1] == "function":
             return
+        if (not self.scope and value is not None and isinstance(value, ast.Call)
+                and len(targets) == 1 and isinstance(targets[0], ast.Name)):
+            fexpr = _expr_str(value.func)
+            if fexpr:
+                self.module_var_calls[targets[0].id] = fexpr
         names: list[str] = []
         for t in targets:
             if isinstance(t, ast.Name):
@@ -721,12 +752,31 @@ def analyze_files(files: list[tuple[str, str]], repo_sha: str) -> list[FileAnaly
             if tq and tq in class_qualnames:
                 fixture_types.setdefault(fname, tq)
 
+    # module-level 'X = factory(...)' where factory binds outside the snapshot
+    # (namedtuple, external classes): calls through X are external bindings.
+    mv_external: dict[str, set[str]] = {}
+    for p, c in collectors.items():
+        if not c.module_var_calls:
+            continue
+        mod = module_name(p)
+        for name, fexpr in c.module_var_calls.items():
+            tq = _resolve_expr(mod, fexpr, c.import_map, known, src_prefix)
+            if tq:
+                continue  # internal factory: return type unknown statically
+            root = fexpr.split(".")[0]
+            if root in BUILTINS:
+                mv_external.setdefault(mod, set()).add(name)
+                continue
+            mapped = c.import_map.get(root)
+            if mapped and not is_internal_module(mapped, modules, src_prefix):
+                mv_external.setdefault(mod, set()).add(name)
+
     # pass 2: full visit with resolution against the complete universe
     out: list[FileAnalysis] = []
     for path, tree, err in parsed:
         v = _Visitor(path, known, by_name, src_prefix, class_bases,
                      class_module, import_maps, modules, reexports,
-                     class_qualnames, fixture_types)
+                     class_qualnames, fixture_types, mv_external.get(module_name(path)))
         if tree is not None:
             v.visit(tree)
         c = collectors.get(path)

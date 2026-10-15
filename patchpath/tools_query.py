@@ -124,8 +124,9 @@ class QueryTools:
         Ranking: traceback frame > named in the issue title > defined in a file changed by a
         linked PR > full dotted name in body > matching module/class
         variable > bare name > parameter name > defined in a named file
-        > external touch point. Never claims
-        relevance; reports why returned. The linked-PR tier ties the full-dotted-name
+        > external touch point. Within a tier, candidates closer (by
+        call edges, up to 2 hops) to a traceback-frame seed sort first.
+        Never claims relevance; reports why returned. The linked-PR tier ties the full-dotted-name
         tier (a human linked the PR; its changed files are curated
         evidence) and sits above module variables, bare names,
         parameter names, and the noisy external touch point. It fires
@@ -276,7 +277,22 @@ class QueryTools:
                                   "file": r[3],
                                   "reason": f"defined in file '{r[3]}' named in issue text",
                                   "_rank": 5})
-        cands.sort(key=lambda c: c["_rank"])
+        # tie-break within a tier: graph distance to a traceback seed.
+        # A fault usually sits in the neighborhood the reporter executed;
+        # candidates 1-2 calls from a traceback frame outrank same-tier
+        # candidates with no path. Cases without traceback frames are
+        # unaffected (no seeds, original order kept).
+        seeds = [c["symbol_id"] for c in cands if c["_rank"] == 0]
+        dist: dict[str, int] = {}
+        others = [c["symbol_id"] for c in cands if c["_rank"] > 0]
+        if seeds and others:
+            rows = self._rows(
+                "MATCH p = (a:Symbol)-[:CALLS*1..2]-(b:Symbol) "
+                "WHERE a.id IN $seeds AND b.id IN $others "
+                "RETURN b.id, min(length(p))",
+                {"seeds": seeds, "others": others})
+            dist = {r[0]: r[1] for r in rows}
+        cands.sort(key=lambda c: (c["_rank"], dist.get(c["symbol_id"], 99)))
         for c in cands:
             c.pop("_rank", None)
         return cands[:MAX_CANDIDATES]

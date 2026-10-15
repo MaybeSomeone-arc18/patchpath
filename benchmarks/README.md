@@ -33,6 +33,14 @@ Three harness runs are committed:
   case whose issue links a same-repo PR, so the tier cannot move the
   other eleven. None of the eight fresh-sample issues links a same-repo
   PR either, so the generalization numbers are unaffected.
+- `results_2026-10-15_run9.json` - same code plus a within-tier
+  tie-break: candidates closer (call edges, up to 2 hops) to a
+  traceback-frame seed sort first. Same frozen inputs: identical
+  per-case statuses (9/12 file, 6/12 file+symbol, 3/3 test-oracle,
+  zero errors). One same-tier candidate swap in pallets/click #3487
+  (`make_str` replaces `_posixify` in the fifth slot; neither is in
+  the case oracle, so the swap is neutral). Cases without traceback
+  frames are unaffected by construction.
 
 Reproduce the sample with the database running:
 

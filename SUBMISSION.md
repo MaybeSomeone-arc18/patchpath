@@ -22,9 +22,10 @@ EXACT / 333 NAME_ONLY / 4,026 EXTERNAL / 541 UNRESOLVED, rounded
 58/3/35/5%) and 1,214 REFS edges. Totals include derived
 constructor edges and are not unique source call counts or accuracy.
 
-Frozen raw auto-discovered sample, 2026-10-15: 9/12 issue-level
+Frozen raw auto-discovered sample, 2026-10-15 (rerun 2026-10-16,
+run11): 9/12 issue-level
 any-changed-product-file hits among the first five candidate symbols;
-6/12 also have a heuristic symbol hit; zero runtime errors. Three cases
+9/12 also have a heuristic symbol hit; zero runtime errors. Three cases
 have no product-Python file in the harness oracle and count as misses in
 the headline; all three surface the fixed test file under the secondary
 test-file oracle (3/3). The only issue whose text names no code
@@ -36,6 +37,8 @@ cases, text and outcomes are committed under benchmarks/; no historical
 curated score is claimed. A live generalization run on untuned repos the
 same day scored 4/4 file hits on pallets/itsdangerous and 1/4 on
 pallets/jinja (compiler-internals issues); both samples are committed.
+The fresh repos were re-scored on 2026-10-16 after the run11 ranking
+changes: per-case outcomes identical.
 Measured latency for the load-bearing caller-expansion traversal is recorded in benchmarks/README.md (about
 1 ms median for depth-3 expansion over 1,250 paths on the published
 packaging graph).

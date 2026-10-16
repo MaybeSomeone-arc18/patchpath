@@ -71,6 +71,21 @@ def _code_like(token: str) -> bool:
     return False
 
 
+def _issue_tokens(text: str) -> set[str]:
+    """Significant word tokens of an issue text: alphabetic words of 3+
+    letters, lowercased, plus naive singular forms ('urls' -> 'url'),
+    minus plain-English stopwords."""
+    toks = {t.lower() for t in re.findall(r"[A-Za-z]{3,}", text)}
+    toks |= {t[:-1] for t in list(toks) if t.endswith("s") and len(t) > 3}
+    return toks - STOPWORDS
+
+
+def _name_parts(name: str) -> set[str]:
+    """Word parts of a snake_case symbol name ('request_url' ->
+    {'request', 'url'})."""
+    return {p for p in name.lower().split("_") if p}
+
+
 def identifiers(text: str) -> list[str]:
     """Candidate identifiers from issue text: dotted names, paths, words."""
     out: list[str] = []
@@ -116,6 +131,17 @@ class QueryTools:
     def _rows(self, q: str, p: dict | None = None):
         return self.g.query(q, p or {}).result_set
 
+    def _caller_indegree(self, symbol_ids: list[str]) -> dict[str, int]:
+        """Distinct static callers per symbol id (batch, read-only)."""
+        if not symbol_ids:
+            return {}
+        rows = self._rows(
+            "MATCH (s:Symbol) WHERE s.id IN $ids "
+            "OPTIONAL MATCH (c:Symbol)-[:CALLS]->(s) "
+            "RETURN s.id, count(DISTINCT c)",
+            {"ids": symbol_ids})
+        return {r[0]: r[1] for r in rows}
+
     # -- tool 1: candidate symbols for issue text ---------------------------
     def find_candidates(self, issue_text: str, title: str = "",
                         linked_pr_files: list[str] | None = None) -> list[dict]:
@@ -125,7 +151,13 @@ class QueryTools:
         linked PR > full dotted name in body > matching module/class
         variable > bare name > parameter name > defined in a named file
         > most-called symbols of a variable-implicated file > external
-        touch point. The surfacing tier stays weak: variable names are
+        touch point. Within the linked-PR tier, symbols whose name parts
+        appear as issue words sort first, then higher caller in-degree,
+        then qualified name (an issue that links a PR usually names what
+        the PR touched; measured on the frozen sample). Within the bare-name
+        tier, a match defined in a file already implicated by a stronger
+        tier sorts first: two independent signals pointing at the same
+        file corroborate each other. The surfacing tier stays weak: variable names are
         common enough ('packages', 'default') that amplifying an
         implicated file's central symbols above the lexical tiers
         flooded the top five and regressed the frozen sample (measured,
@@ -168,19 +200,34 @@ class QueryTools:
         if linked_pr_files:
             py = [p for p in linked_pr_files if p.endswith(".py")][:20]
             if py:
+                # fetch a wider alphabetical window, then rank: name parts
+                # shared with the issue text, then caller in-degree, then
+                # qualified name. The ranking must happen in Python - the
+                # old LIMIT 10 cut before ranking and dropped the relevant
+                # symbol whenever the file held more than ten (measured on
+                # psf/requests adapters.py, 22 symbols).
                 rows = self._rows(
                     "UNWIND $ps AS p "
                     "MATCH (s:Symbol)-[:DEFINED_IN]->(f:File) "
                     "WHERE s.kind <> 'module' AND "
                     "      (f.path = p OR f.path ENDS WITH '/' + p) "
-                    "RETURN DISTINCT s.id, s.qualname, s.kind, f.path "
-                    "ORDER BY s.qualname LIMIT 10",
+                    "RETURN DISTINCT s.id, s.qualname, s.kind, s.name, f.path "
+                    "ORDER BY s.qualname LIMIT 50",
                     {"ps": py})
+                deg = self._caller_indegree([r[0] for r in rows])
+                toks = _issue_tokens(issue_text)
+                rows = sorted(rows, key=lambda r: (
+                    -len(_name_parts(r[3]) & toks), -deg.get(r[0], 0), r[1]))[:10]
                 for r in rows:
                     if not _have(r[0]):
+                        overlap = _name_parts(r[3]) & toks
+                        why = f"defined in '{r[4]}', changed in a PR linked from the issue"
+                        if overlap:
+                            why += (", name shares issue term(s): "
+                                    + ", ".join(sorted(overlap)))
                         cands.append({"symbol_id": r[0], "qualname": r[1],
-                                      "kind": r[2], "file": r[3],
-                                      "reason": f"defined in '{r[3]}', changed in a PR linked from the issue",
+                                      "kind": r[2], "file": r[4],
+                                      "reason": why,
                                       "_rank": 2})
         if not idents:
             cands.sort(key=lambda c: c["_rank"])
@@ -216,8 +263,11 @@ class QueryTools:
                         c["_rank"], c["reason"] = rank, reason
 
         # module-/class-level variables named in the issue (constants, flags);
-        # dotted mentions match on the root: '_CONSTANT.method' -> '_CONSTANT'
-        var_ids = list(idents)
+        # dotted mentions match on the root: '_CONSTANT.method' -> '_CONSTANT'.
+        # Only code-shaped names: a bare lowercase dictionary word matching a
+        # variable ('packages', 'project') flooded the top five with
+        # unrelated files on the frozen sample (measured, then restricted).
+        var_ids = [i for i in idents if _code_like(i)]
         var_ids += [i.split(".")[0] for i in idents if "." in i
                     and not i.endswith(".py")]
         rows = self._rows(
@@ -226,7 +276,7 @@ class QueryTools:
             "WHERE v.name = id "
             "RETURN DISTINCT v.id, v.qualname, v.name, f.path, v.line "
             "ORDER BY v.qualname LIMIT $lim",
-            {"ids": var_ids, "lim": MAX_CANDIDATES})
+            {"ids": var_ids, "lim": MAX_CANDIDATES}) if var_ids else []
         var_files: dict[str, str] = {}
         for r in rows:
             if not _have(r[0]):
@@ -270,7 +320,8 @@ class QueryTools:
             rows = self._rows(
                 "UNWIND $ids AS id "
                 "MATCH (e:External)<-[r]-(s:Symbol)-[:DEFINED_IN]->(f:File) "
-                "WHERE (e.expr = id OR e.expr ENDS WITH '.' + id) "
+                "WHERE s.kind <> 'module' AND "
+                "      (e.expr = id OR e.expr ENDS WITH '.' + id) "
                 "RETURN DISTINCT s.id, s.qualname, s.kind, id, f.path, type(r) "
                 "ORDER BY s.qualname LIMIT $lim",
                 {"ids": ext_ids, "lim": MAX_CANDIDATES})
@@ -332,7 +383,14 @@ class QueryTools:
                 "RETURN b.id, min(length(p))",
                 {"seeds": seeds, "others": others})
             dist = {r[0]: r[1] for r in rows}
-        cands.sort(key=lambda c: (c["_rank"], dist.get(c["symbol_id"], 99)))
+        # corroboration: a bare-name match (rank 3) defined in a file a
+        # stronger tier already implicated outranks same-tier matches in
+        # files nothing else points at
+        implicated = {c["file"] for c in cands if c["_rank"] <= 2}
+        cands.sort(key=lambda c: (
+            c["_rank"],
+            0 if (c["_rank"] == 3 and c["file"] in implicated) else 1,
+            dist.get(c["symbol_id"], 99)))
         for c in cands:
             c.pop("_rank", None)
         return cands[:MAX_CANDIDATES]

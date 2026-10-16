@@ -53,6 +53,23 @@ Three harness runs are committed:
   of the surfacing tier (level with the variable tier) was measured
   and reverted: common variable names amplified the wrong files and
   regressed the sample to 8/12 file and 5/12 file+symbol.
+- `results_2026-10-16_run11.json` - query-side ranking changes, same
+  frozen inputs: **9/12** file hits (unchanged; three test-only fixes
+  cap it), **9/12** file+symbol hits (up from 6/12), 3/3 test-oracle,
+  zero errors, two consecutive runs byte-identical. Three measured
+  changes: (a) the variable tier now requires code-shaped names - bare
+  lowercase dictionary words ('packages', 'project') had flooded the
+  top five with unrelated files; (b) within the bare-name tier, a match
+  defined in a file already implicated by a stronger tier sorts first
+  (corroboration); (c) the linked-PR tier ranks the changed file's
+  symbols by issue-term overlap, then caller in-degree, instead of
+  taking the first ten alphabetically - the old order cut
+  `HTTPAdapter.request_url` out of psf/requests #6711 before ranking
+  (adapters.py holds 22 symbols). A fourth candidate change
+  (degree-ordering the most-called tier) showed no per-case effect on
+  this sample and was not shipped. Fresh-repo re-check the same day on
+  live issue text: itsdangerous 4/4 file and 3/4 file+symbol, jinja
+  1/4 file - per-case identical to the 2026-10-15 fresh records.
 
 Reproduce the sample with the database running:
 
@@ -70,14 +87,17 @@ candidate names and their one-hop caller/callee names, so it can collide.
 - psf/requests #6711 names no code: the issue text shares no vocabulary
   with the fixed file, so no lexical seed exists. It was an accepted
   miss through run7; run8's linked-PR bridge surfaces the fixed file
-  because the issue links the fixing PR (#6644).
+  because the issue links the fixing PR (#6644), and run11's ranked
+  PR tier also surfaces the fixed symbol (`request_url` shares the
+  issue term 'url').
 - packaging #1406, click #3036 and click #3128 change no product-Python
   file in the harness oracle (test-only fixes); they count as headline
   misses and are separately reported through the test-file oracle (3/3).
-- packaging #1318 and requests #3698 hit the changed file but not the
-  heuristic symbol check: the symbol check compares bare diff names
-  against candidate and one-hop neighbor names, and `__init__` /
-  `content` collide too widely to be credited.
+- packaging #1318 and requests #3698 hit the changed file but missed
+  the heuristic symbol check through run10 (`__init__` / `content`
+  collide too widely as bare names). Run 11's ranking changes surface
+  the qualified symbols (`Version.__init__`, `Response.content`), so
+  both now record file+symbol hits.
 
 ## Oracles: product files and test files
 

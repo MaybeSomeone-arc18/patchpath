@@ -155,8 +155,9 @@ python -m patchpath.eval --cases benchmarks/cases_2026-10-15.json \
 ```
 
 On the 2026-10-15 raw auto-discovered 12-issue sample across packaging,
-requests and click: **9/12 any-changed-product-file hits among the first
-five candidate symbols**, **6/12 with both a file hit and a heuristic
+requests and click (frozen inputs, rerun 2026-10-16): **9/12
+any-changed-product-file hits among the first
+five candidate symbols**, **9/12 with both a file hit and a heuristic
 symbol hit**, zero runtime errors. The three cases with no product-Python
 file in the extracted oracle are retained as misses in that headline; all
 three do surface the actually-fixed test file under the secondary
@@ -171,7 +172,8 @@ See the benchmark notes before comparing systems. Live discovery without
 `--cases` changes as GitHub changes; it is not the frozen sample.
 
 As a generalization check, the same discovery harness was run on two
-repos it was not tuned on (2026-10-15, live GitHub): pallets/itsdangerous
+repos it was not tuned on (2026-10-15, live GitHub; re-verified
+2026-10-16, per-case identical): pallets/itsdangerous
 scored 4/4 file hits (3/4 with symbol hit); pallets/jinja scored 1/4 -
 the three misses are compiler-internals issues whose text shares little
 vocabulary with the fixed code. One jinja case in a later rerun was

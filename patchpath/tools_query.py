@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from falkordb import FalkorDB
 
+from .dbconn import falkor_address
+
 MAX_HOPS = 3
 MAX_CANDIDATES = 25
 MAX_RESULTS = 50
@@ -125,8 +127,12 @@ def frames(text: str) -> list[tuple[str, str]]:
 
 
 class QueryTools:
-    def __init__(self, graph_name: str, host: str = "127.0.0.1", port: int = 6380):
-        self.g = FalkorDB(host=host, port=port).select_graph(graph_name)
+    def __init__(self, graph_name: str, host: str | None = None,
+                 port: int | None = None):
+        env_host, env_port = falkor_address()
+        self.g = FalkorDB(host=host if host is not None else env_host,
+                          port=port if port is not None else env_port
+                          ).select_graph(graph_name)
 
     def _rows(self, q: str, p: dict | None = None):
         return self.g.query(q, p or {}).result_set

@@ -9,6 +9,7 @@ from pathlib import Path
 from . import ANALYZER_VERSION, SCHEMA_VERSION
 from .acquire import AcquireError, fetch_snapshot, resolve_sha
 from .analyze import analyze_snapshot
+from .dbconn import falkor_address
 from .graphstore import GraphStore
 from .registry import Registry
 
@@ -54,11 +55,12 @@ def cmd_ingest(args) -> int:
 
     DATA.mkdir(exist_ok=True)
     reg = Registry(DATA / "registry.db")
+    host, port = falkor_address()
     try:
         gs = GraphStore()
         gs.db.connection.ping()
     except Exception:
-        print("error: FalkorDB is not reachable on 127.0.0.1:6380 - start it "
+        print(f"error: FalkorDB is not reachable on {host}:{port} - start it "
               "(docker run -d --name falkordb -p 127.0.0.1:6380:6379 "
               "falkordb/falkordb:6.0.2) and retry. "
               "No new investigation is possible while the graph is down; "
@@ -109,12 +111,14 @@ def cmd_pack(args) -> int:
         ready = reg.get_ready(snap_id)
     graph = ready["graph"]
     print(f"[pack] using snapshot {graph}")
+    host, port = falkor_address()
     try:
         from falkordb import FalkorDB as _F
-        _F(port=6380).connection.ping()
+        _F(host=host, port=port).connection.ping()
     except Exception:
-        print("error: FalkorDB is not reachable; cannot build a pack while the "
-              "graph is down. Existing packs in data/packets/ are historical.",
+        print(f"error: FalkorDB is not reachable on {host}:{port}; cannot "
+              "build a pack while the graph is down. Existing packs in "
+              "data/packets/ are historical.",
               file=sys.stderr)
         return 2
 
@@ -180,10 +184,11 @@ def cmd_prune(args) -> int:
     rows = reg.conn.execute(
         "SELECT snapshot_id, status, graph_name FROM snapshots").fetchall()
     registered = {r[0]: (r[1], r[2]) for r in rows}
+    host, port = falkor_address()
     try:
-        names = FalkorDB(port=6380).list_graphs()
+        names = FalkorDB(host=host, port=port).list_graphs()
     except Exception:
-        print("error: FalkorDB is not reachable on 127.0.0.1:6380", file=sys.stderr)
+        print(f"error: FalkorDB is not reachable on {host}:{port}", file=sys.stderr)
         return 2
     staging, superseded, orphans = select_prune_targets(names, registered)
     if args.dry_run:
@@ -194,7 +199,7 @@ def cmd_prune(args) -> int:
         print(f"[prune:dry-run] would drop {len(staging) + len(superseded)} "
               f"of {len(names)} graphs")
         return 0
-    db = FalkorDB(port=6380)
+    db = FalkorDB(host=host, port=port)
     dropped = 0
     for g in staging + superseded:
         db.select_graph(g).delete()

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from falkordb import FalkorDB
 
+from .dbconn import falkor_address
+
 from . import ANALYZER_VERSION, SCHEMA_VERSION
 from .analyze import EXACT, EXTERNAL, NAME_ONLY, UNRESOLVED, FileAnalysis, Ref, module_name, symbol_id
 from .acquire import Snapshot
@@ -28,8 +30,10 @@ def published_graph_name(snapshot_id: str) -> str:
 
 
 class GraphStore:
-    def __init__(self, host: str = "127.0.0.1", port: int = 6380):
-        self.db = FalkorDB(host=host, port=port)
+    def __init__(self, host: str | None = None, port: int | None = None):
+        env_host, env_port = falkor_address()
+        self.db = FalkorDB(host=host if host is not None else env_host,
+                           port=port if port is not None else env_port)
 
     # --- write path -------------------------------------------------------
     def build_staging(self, snap: Snapshot, analyses: list[FileAnalysis]) -> str:

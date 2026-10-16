@@ -1,0 +1,14 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:6.0.2
+    ports:
+      - "127.0.0.1:6380:6379"
+  app:
+    build: .
+    depends_on:
+      - falkordb
+    environment:
+      PATCHPATH_FALKOR_HOST: falkordb
+      PATCHPATH_FALKOR_PORT: "6379"
+    volumes:
+      - ./data:/app/data

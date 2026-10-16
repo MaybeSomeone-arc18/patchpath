@@ -59,6 +59,33 @@ Optional local viewer: `python -m patchpath.viewer`. It binds loopback,
 prints a per-start access token, and can build packs. It is single-user,
 not a hosted or multi-tenant deployment.
 
+## Docker
+
+The Dockerfile builds an image with the app and its test suite. The default
+container command runs the tests, which need no graph server:
+
+```bash
+docker build -t patchpath .
+docker run --rm patchpath
+```
+
+For the CLI with its graph server, compose starts the app and FalkorDB 6.0.2
+together. The app service reaches FalkorDB at `falkordb:6379` through
+`PATCHPATH_FALKOR_HOST` and `PATCHPATH_FALKOR_PORT`; outside containers
+those default to `127.0.0.1:6380`, matching the local setup above. Compose
+also publishes FalkorDB on host loopback port 6380, so the non-Docker
+commands keep working while it is up:
+
+```bash
+docker compose up -d falkordb
+docker compose run --rm app python -m patchpath.cli ingest pypa/packaging
+docker compose run --rm app python -m patchpath.cli pack pypa/packaging 1449
+```
+
+`data/` is bind-mounted, so packs land in `data/packets/` on the host.
+A GitHub Actions workflow builds this image and runs the container test
+suite on every push.
+
 ## Graph data model
 
 - `Snapshot`: repo, commit SHA, analyzer/schema versions
